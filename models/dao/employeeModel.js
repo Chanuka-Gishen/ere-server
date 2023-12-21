@@ -30,6 +30,9 @@ const employeeSchema = new Schema({
     type: String,
     required: true,
   },
+  userToken: {
+    type: String,
+  },
 });
 
 employeeSchema.pre("save", async function (next) {

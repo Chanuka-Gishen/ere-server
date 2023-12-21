@@ -6,6 +6,8 @@ import morgan from "morgan";
 import mongoose from "mongoose";
 
 import ApiResponse from "./services/ApiResponse.js";
+import { createDefaultAdmin } from "./controllers/employeeController.js";
+import router from "./routes/index.js";
 
 dotenv.config();
 const app = express();
@@ -35,13 +37,7 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json(ApiResponse.error(statusCode, errorMessage));
 });
 
-// Route with success response
-app.get("/", (req, res) => {
-  // Use ApiResponse class for success response
-  res.json(
-    ApiResponse.response(200, "Success", { message: "Hello, Express!" })
-  );
-});
+app.use("/server", router);
 
 mongoose.connect(process.env.MONGODB_URL);
 
@@ -53,6 +49,8 @@ db.on("error", (error) => {
 
 db.once("connected", () => {
   console.log("Connected to MongoDB");
+
+  createDefaultAdmin();
   // Start your Express server here
   app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
