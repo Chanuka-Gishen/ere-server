@@ -1,0 +1,22 @@
+{
+  "name": "ere-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/Chanuka-Gishen/ere-server.git",
+  "author": "Chanuka-Gishen <76777641+Chanuka-Gishen@users.noreply.github.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "nodemon  index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "http-status": "^1.7.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "morgan": "^1.10.0"
+  }
+}
