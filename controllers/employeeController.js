@@ -12,15 +12,21 @@ import {
 } from "../constants/statusCodes.js";
 import { employeeRegisterSchema } from "../schemas/employeeSchema.js";
 import {
-  emploee_not_found,
+  employee_deleted,
   employee_exists,
   employee_incorrect_pwd,
+  employee_not_found,
   employee_registered,
+  employee_updated,
+  employee_username_exists,
   logged_in_success,
   logged_out_success,
+  success_message,
 } from "../constants/messageConstants.js";
 import { loginSchema } from "../schemas/loginSchema.js";
-import { generateToken, verifyToken } from "../services/jwtServices.js";
+import { generateToken } from "../services/jwtServices.js";
+import { employeeUpdateSchema } from "../schemas/employeeUpdateSchema.js";
+import { ObjectId } from "mongodb";
 
 // Create default admin
 export const createDefaultAdmin = async () => {
@@ -123,7 +129,7 @@ export const login = async (req, res) => {
           ApiResponse.response(employee_error_code, employee_incorrect_pwd)
         );
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.userRole);
 
     user.userToken = token;
 
@@ -146,13 +152,11 @@ export const login = async (req, res) => {
 // Logout employee
 export const logout = async (req, res) => {
   try {
-    const tokenPayload = verifyToken(req);
-
-    const user = await Employee.findOne({ _id: tokenPayload.id });
+    const user = await Employee.findOne({ _id: req.user.id });
 
     if (!user)
       return res
-        .status(httpStatus.OK)
+        .status(httpStatus.httpStatus.NOT_FOUND)
         .json(ApiResponse.response(employee_error_code, emploee_not_found));
 
     user.userToken = null;
@@ -162,6 +166,100 @@ export const logout = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.response(auth_success_code, logged_out_success));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Update Employee
+export const updateEmployee = async (req, res) => {
+  try {
+    const { error, value } = employeeUpdateSchema.validate(req.body);
+
+    const { _id, userFirstName, userLastName, userRole } = value;
+
+    if (error) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, error.message));
+    }
+
+    const existingUser = await Employee.findById(_id);
+
+    if (!existingUser) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(employee_error_code, employee_not_found));
+    }
+
+    const userName = (
+      userFirstName + process.env.USERNAME_SUFFIX
+    ).toLowerCase();
+
+    const existingUserName = await Employee.findOne({ userName });
+
+    if (existingUserName && existingUser.userName != userName) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(employee_error_code, employee_username_exists));
+    }
+
+    existingUser.userFullName = `${userFirstName} ${userLastName}`;
+    existingUser.userName = userName;
+    existingUser.userRole = userRole;
+
+    await existingUser.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(employee_success_code, employee_updated));
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Delete employee
+export const deleteEmployee = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const existingUser = await Employee.findById(new ObjectId(userId));
+
+    if (!existingUser) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(employee_error_code, employee_not_found));
+    }
+
+    await Employee.deleteOne(existingUser);
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(employee_success_code, employee_deleted));
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get all employees
+export const getAllEmployees = async (req, res) => {
+  try {
+    const employees = await Employee.find();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(employee_success_code, success_message, employees)
+      );
   } catch (error) {
     console.log(error);
     return res

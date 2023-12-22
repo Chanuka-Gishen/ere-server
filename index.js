@@ -50,7 +50,7 @@ db.on("error", (error) => {
 db.once("connected", () => {
   console.log("Connected to MongoDB");
 
-  createDefaultAdmin();
+  // createDefaultAdmin();
   // Start your Express server here
   app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);

@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 
-export const generateToken = (id) => {
-  return jwt.sign({ id: id }, process.env.JWT_SECRET);
+export const generateToken = (id, role) => {
+  return jwt.sign({ id: id, role: role }, process.env.JWT_SECRET);
 };
 
-export const verifyToken = (req) => {
+export const verifyUserToken = (req) => {
   let token = req.header("Authorization");
   token = token.slice(7, token.length).trimLeft();
 
