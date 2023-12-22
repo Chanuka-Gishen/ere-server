@@ -109,7 +109,7 @@ export const login = async (req, res) => {
     }
 
     const { userName, userPassword } = value;
-    const user = await Employee.findOne({ userName });
+    const user = await Employee.findOne({ userName: userName.toLowerCase() });
     if (!user)
       return res
         .status(httpStatus.OK)
