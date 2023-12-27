@@ -11,3 +11,6 @@ export const employee_deleted = "Employee deleted";
 export const employee_not_found = "Employee Not Found";
 export const employee_username_exists = "User name exists";
 export const employee_incorrect_pwd = "Incorrect Password";
+
+export const customer_exists = "Customer exists";
+export const customer_registered = "Customer registered";

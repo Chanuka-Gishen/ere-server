@@ -119,7 +119,7 @@ export const login = async (req, res) => {
     if (!user)
       return res
         .status(httpStatus.OK)
-        .json(ApiResponse.response(employee_error_code, emploee_not_found));
+        .json(ApiResponse.response(employee_error_code, employee_not_found));
 
     const isMatch = await bcrypt.compare(userPassword, user.userPassword);
     if (!isMatch)
@@ -157,7 +157,7 @@ export const logout = async (req, res) => {
     if (!user)
       return res
         .status(httpStatus.httpStatus.NOT_FOUND)
-        .json(ApiResponse.response(employee_error_code, emploee_not_found));
+        .json(ApiResponse.response(employee_error_code, employee_not_found));
 
     user.userToken = null;
 
