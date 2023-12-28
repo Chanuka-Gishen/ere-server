@@ -9,10 +9,13 @@ import Customer from "../models/dao/customerModel.js";
 import ApiResponse from "../services/ApiResponse.js";
 import {
   customer_exists,
+  customer_not_found,
   customer_registered,
   success_message,
 } from "../constants/messageConstants.js";
 import Unit from "../models/dao/unitModel.js";
+import { ObjectId } from "mongodb";
+import { customerUpdateSchema } from "../schemas/customerUpdateScehema.js";
 
 export const registerCustomer = async (req, res) => {
   try {
@@ -72,6 +75,51 @@ export const registerCustomer = async (req, res) => {
   }
 };
 
+export const updateCustomer = async (req, res) => {
+  try {
+    const { error, value } = customerUpdateSchema.validate(req.body);
+
+    if (error) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, error.message));
+    }
+    const {
+      customerId,
+      customerName,
+      customerAddress,
+      customerMobile,
+      customerLand,
+      customerEmail,
+    } = value;
+
+    const customer = await Customer.findById(new ObjectId(customerId));
+
+    if (!customer) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.response(customer_error_code, customer_not_found));
+    }
+
+    customer.customerName = customerName;
+    customer.customerAddress = customerAddress;
+    customer.customerEmail = customerEmail;
+    customer.customerTel.mobile = customerMobile;
+    customer.customerTel.landline = customerLand;
+
+    await customer.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(customer_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
 export const getAllCustomers = async (req, res) => {
   try {
     const customers = await Customer.find();
@@ -85,6 +133,31 @@ export const getAllCustomers = async (req, res) => {
     console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const getCustomer = async (req, res) => {
+  try {
+    const { customerId } = req.params;
+
+    const customer = await Customer.findById(new ObjectId(customerId));
+
+    if (!customer) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.response(customer_error_code, customer_not_found));
+    }
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(customer_success_code, success_message, customer)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };

@@ -19,10 +19,12 @@ const customerSchema = new Schema({
     },
     landline: {
       type: String,
+      default: null,
     },
   },
   customerEmail: {
     type: String,
+    default: null,
   },
 });
 
