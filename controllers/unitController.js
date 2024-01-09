@@ -17,6 +17,9 @@ import {
   success_message,
 } from "../constants/messageConstants.js";
 import { unitUpdateSchema } from "../schemas/unitUpdateSchema.js";
+import { WorkOrder } from "../models/dao/workOrderModel.js";
+import { WORK_ORD_SERVICE } from "../constants/commonConstants.js";
+import { generateWorkOrderNumber } from "../services/commonServices.js";
 
 export const AddCustomerUnit = async (req, res) => {
   try {
@@ -55,7 +58,24 @@ export const AddCustomerUnit = async (req, res) => {
       unitStatus,
     });
 
-    await newUnit.save();
+    const workCorderCode = generateWorkOrderNumber(
+      customer.customerName,
+      newUnit.unitSerialNo,
+      WORK_ORD_SERVICE,
+      newUnit.unitNextMaintenanceDate
+    );
+
+    const unit = await newUnit.save();
+
+    const newWorkOrder = new WorkOrder({
+      workOrderCode: workCorderCode,
+      workOrderType: WORK_ORD_SERVICE,
+      workOrderCustomerId: customer._id,
+      workOrderUnitReference: unit._id,
+      workOrderScheduledDate: unit.unitNextMaintenanceDate,
+    });
+
+    await newWorkOrder.save();
 
     return res
       .status(httpStatus.OK)
@@ -97,6 +117,34 @@ export const updateCustomerUnit = async (req, res) => {
     }
 
     unit.unitModel = unitModel;
+
+    if (
+      unit.unitSerialNo != unitSerialNo ||
+      unit.unitNextMaintenanceDate != unitNextMaintenanceDate
+    ) {
+      const customer = await Customer.findById(
+        new ObjectId(unit.unitCustomerId)
+      );
+
+      const workOrders = await WorkOrder.aggregate([
+        { $match: { workOrderUnitReference: new ObjectId(unit._id) } },
+        { $sort: { workOrderScheduledDate: -1 } }, // Sort in descending order by scheduled date
+        { $limit: 1 },
+      ]);
+
+      const latestWorkOrder = workOrders[0];
+
+      latestWorkOrder.workOrderCode = generateWorkOrderNumber(
+        customer.customerName,
+        unitSerialNo,
+        latestWorkOrder.workOrderType,
+        unitNextMaintenanceDate
+      );
+      latestWorkOrder.workOrderScheduledDate = unitNextMaintenanceDate;
+
+      await WorkOrder.updateOne(latestWorkOrder);
+    }
+
     unit.unitSerialNo = unitSerialNo;
     unit.unitInstalledDate = unitInstalledDate;
     unit.unitLastMaintenanceDate = unitLastMaintenanceDate;

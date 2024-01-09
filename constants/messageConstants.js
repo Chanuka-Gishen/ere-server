@@ -19,3 +19,9 @@ export const customer_unit_added = "New unit added";
 export const customer_unit_updated = "Unit updated";
 
 export const customer_unit_not_found = "Unit not found";
+
+export const workOrder_not_found = "Work Order not found";
+export const workOrder_assignees_required = "Assigned employees required";
+export const workOrder_completed = "WorkOrder completed";
+export const workOrder_empty_images = "Images required";
+export const workOrder_not_scheduled = "Work order not scheduled";

@@ -27,6 +27,7 @@ import { loginSchema } from "../schemas/loginSchema.js";
 import { generateToken } from "../services/jwtServices.js";
 import { employeeUpdateSchema } from "../schemas/employeeUpdateSchema.js";
 import { ObjectId } from "mongodb";
+import { HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 
 // Create default admin
 export const createDefaultAdmin = async () => {
@@ -254,6 +255,27 @@ export const deleteEmployee = async (req, res) => {
 export const getAllEmployees = async (req, res) => {
   try {
     const employees = await Employee.find();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(employee_success_code, success_message, employees)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+//Get employee for selection
+export const getAllEmployeeForSelect = async (req, res) => {
+  try {
+    const employees = await Employee.find(
+      { userRole: { $in: [TECHNICIAN_ROLE, HELPER_ROLE] } }, // Filter by roles
+      { _id: 1, userFullName: 1, userRole: 1 }
+    );
 
     return res
       .status(httpStatus.OK)

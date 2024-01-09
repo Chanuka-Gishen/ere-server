@@ -44,8 +44,11 @@ export const registerCustomer = async (req, res) => {
         .json(ApiResponse.error(customer_error_code, customer_exists));
     }
 
+    const customerCode = createClientCode(customerName);
+
     const customer = new Customer({
       customerName: customerName,
+      customerCode: customerCode,
       customerAddress: customerAddress,
       customerEmail: customerEmail,
       customerTel: {
@@ -160,4 +163,14 @@ export const getCustomer = async (req, res) => {
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
   }
+};
+
+const createClientCode = (clientName) => {
+  // Split the full name into words
+  const words = clientName.split(" ");
+
+  // Extract the first letter of each word and concatenate them
+  const initials = words.map((word) => word.charAt(0)).join("");
+
+  return initials.slice(0, 4).toUpperCase();
 };

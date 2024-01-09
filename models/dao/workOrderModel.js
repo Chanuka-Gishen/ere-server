@@ -1,8 +1,11 @@
 import mongoose from "mongoose";
 import {
   COMPLETED_STATUS,
-  PENDING_STATUS,
-} from "../../constants/commonConstants";
+  CREATED_STATUS,
+  SCHEDULED_STATUS,
+  WORK_ORD_REPAIR,
+  WORK_ORD_SERVICE,
+} from "../../constants/commonConstants.js";
 
 const Schema = mongoose.Schema;
 
@@ -13,7 +16,23 @@ const imageSchema = new Schema({
     ref: "Employee",
     required: true,
   },
-  imageUrl: {
+  imageId: {
+    type: String,
+    required: true,
+  },
+  imageFileName: {
+    type: String,
+    required: true,
+  },
+  imageMimeType: {
+    type: String,
+    required: true,
+  },
+  imageWebUrl: {
+    type: String,
+    required: true,
+  },
+  imageContentUrl: {
     type: String,
     required: true,
   },
@@ -25,47 +44,52 @@ const imageSchema = new Schema({
 
 // Work Order Schema
 const workOrderSchema = new Schema({
-  workOrderNumber: {
+  workOrderCode: {
     type: String,
     unique: true,
     required: true,
   },
-  userId: {
+  workOrderCustomerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Customer",
     required: true,
   },
-  scheduledDate: {
+  workOrderScheduledDate: {
     type: Date,
   },
-  completedDate: {
+  workOrderCompletedDate: {
     type: Date,
+    default: null,
   },
-  status: {
+  workOrderType: {
     type: String,
-    enum: [PENDING_STATUS, COMPLETED_STATUS],
-    default: PENDING_STATUS,
+    required: true,
+    enum: [WORK_ORD_SERVICE, WORK_ORD_REPAIR],
   },
-  invoiceNumber: {
-    type: Number,
+  workOrderStatus: {
+    type: String,
+    enum: [CREATED_STATUS, SCHEDULED_STATUS, COMPLETED_STATUS],
+    default: CREATED_STATUS,
   },
-  images: [imageSchema],
-  acUnitReference: {
+  workOrderInvoiceNumber: {
+    type: String,
+    default: null,
+  },
+  workOrderImages: [imageSchema],
+  workOrderUnitReference: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "ACUnit",
+    ref: "Unit",
     required: true,
   },
-  assignedEmployees: [
+  workOrderAssignedEmployees: [
     { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
   ],
+  workOrderCreatedAt: {
+    type: Date,
+    default: Date.now(),
+  },
 });
 
 // Creating models
-const WorkOrder = mongoose.model("WorkOrder", workOrderSchema);
-const Image = mongoose.model("Image", imageSchema);
-
-// Exporting models
-module.exports = {
-  WorkOrder,
-  Image,
-};
+export const WorkOrder = mongoose.model("WorkOrder", workOrderSchema);
+export const Image = mongoose.model("Image", imageSchema);

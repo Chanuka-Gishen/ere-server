@@ -19,3 +19,8 @@ export const customer_success_code = "CUST-001";
 export const customer_info_code = "CUST-002";
 export const customer_warning_code = "CUST-003";
 export const customer_error_code = "CUST-004";
+
+export const workorder_success_code = "WORK-001";
+export const workorder_info_code = "WORK-002";
+export const workorder_warning_code = "WORK-003";
+export const workorder_error_code = "WORK-004";

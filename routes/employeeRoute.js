@@ -6,6 +6,7 @@ import {
   getAllEmployees,
   updateEmployee,
   deleteEmployee,
+  getAllEmployeeForSelect,
 } from "../controllers/employeeController.js";
 import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
@@ -21,6 +22,11 @@ employeeRoutes.delete(
   "/delete/:userId",
   [verifyToken, checkAdmin],
   deleteEmployee
+);
+employeeRoutes.get(
+  "/select",
+  [verifyToken, checkAdmin],
+  getAllEmployeeForSelect
 );
 
 export default employeeRoutes;

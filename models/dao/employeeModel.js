@@ -4,7 +4,8 @@ import {
   ADMIN_ROLE,
   TECHNICIAN_ROLE,
   HELPER_ROLE,
-} from "../../constants/role.js"; // Adjust the path based on your project structure
+} from "../../constants/role.js";
+import { excludeEmployeeFieldsPlugin } from "../../plugin/employeeModelPlugin.js";
 
 const Schema = mongoose.Schema;
 
@@ -49,6 +50,8 @@ employeeSchema.pre("save", async function (next) {
     return next(error);
   }
 });
+
+employeeSchema.plugin(excludeEmployeeFieldsPlugin);
 
 const Employee = mongoose.model("Employee", employeeSchema);
 
