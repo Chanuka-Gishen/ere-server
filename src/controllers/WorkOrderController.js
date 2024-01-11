@@ -35,6 +35,64 @@ import {
   uploadImagesToDrive,
 } from "../services/googleApi.js";
 import Employee from "../models/dao/employeeModel.js";
+import { ADMIN_ROLE } from "../constants/role.js";
+import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
+
+export const createRepairJob = async (req, res) => {
+  try {
+    const { error, value } = WorkOrderAddSchema.validate(req.body);
+
+    if (error) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, error.message));
+    }
+
+    const { workOrderType, workOrderUnit, workOrderScheduledDate } = value;
+
+    const unit = await Unit.findById(new ObjectId(workOrderUnit));
+
+    if (!unit) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, customer_unit_not_found));
+    }
+
+    const customer = await Customer.findById(new ObjectId(unit.unitCustomerId));
+
+    if (!customer) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, customer_not_found));
+    }
+
+    const code = generateWorkOrderNumber(
+      customer.customerName,
+      unit.unitSerialNo,
+      workOrderType,
+      new Date(workOrderScheduledDate)
+    );
+
+    const newJob = new WorkOrder({
+      workOrderType: workOrderType,
+      workOrderCode: code,
+      workOrderCustomerId: customer._id,
+      workOrderUnitReference: unit._id,
+      workOrderScheduledDate: new Date(workOrderScheduledDate),
+    });
+
+    await newJob.save();
+
+    return res
+      .status(httpStatus.CREATED)
+      .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
 
 export const GetWorkOrdersByUnit = async (req, res) => {
   try {
@@ -385,6 +443,51 @@ export const uploadWorkImages = async (req, res) => {
   }
 };
 
+export const getEmployeeAssignedWorkOverview = async (req, res) => {
+  try {
+    const employeeId = req.user.id;
+
+    const employee = await Employee.findById(new ObjectId(employeeId));
+
+    if (!employee) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, employee_not_found));
+    }
+
+    let result;
+
+    if (employee.userRole === ADMIN_ROLE) {
+      result = await WorkOrder.find({
+        workOrderStatus: SCHEDULED_STATUS,
+      })
+        .populate("workOrderCustomerId")
+        .populate("workOrderUnitReference")
+        .sort({ workOrderScheduledDate: 1 });
+    } else {
+      result = await WorkOrder.find({
+        workOrderAssignedEmployees: new ObjectId(employeeId),
+        workOrderStatus: SCHEDULED_STATUS,
+      })
+        .populate("workOrderCustomerId")
+        .populate("workOrderUnitReference")
+        .sort({ workOrderScheduledDate: 1 });
+    }
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(workorder_success_code, success_message, result)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Temporary API to delete google drive files
 export const deleteFileApi = async (req, res) => {
   const { id } = req.params;
 

@@ -13,7 +13,6 @@ import {
   customer_registered,
   success_message,
 } from "../constants/messageConstants.js";
-import Unit from "../models/dao/unitModel.js";
 import { ObjectId } from "mongodb";
 import { customerUpdateSchema } from "../schemas/customerUpdateScehema.js";
 
@@ -33,7 +32,6 @@ export const registerCustomer = async (req, res) => {
       customerMobile,
       customerLand,
       customerEmail,
-      customerUnits,
     } = value;
 
     const existingUser = await Customer.findOne({ customerName });
@@ -57,15 +55,7 @@ export const registerCustomer = async (req, res) => {
       },
     });
 
-    const savedCustomer = await customer.save();
-
-    const unitsWithIds = customerUnits.map((unit) => ({
-      ...unit,
-      unitLastMaintenanceDate: unit.unitInstalledDate,
-      unitCustomerId: savedCustomer._id,
-    }));
-
-    await Unit.insertMany(unitsWithIds);
+    await customer.save();
 
     return res
       .status(httpStatus.OK)

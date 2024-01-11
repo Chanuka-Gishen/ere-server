@@ -3,7 +3,6 @@ export const excludeEmployeeFieldsPlugin = (schema) => {
     transform: function (doc, ret) {
       // Exclude 'userPassword' and 'userToken' fields from the JSON output
       delete ret.userPassword;
-      delete ret.userToken;
     },
   };
 };
