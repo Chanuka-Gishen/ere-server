@@ -5,9 +5,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import mongoose from "mongoose";
 
-import ApiResponse from "./services/ApiResponse.js";
-import { createDefaultAdmin } from "./controllers/employeeController.js";
-import router from "./routes/index.js";
+import ApiResponse from "./src/services/ApiResponse.js";
+import { createDefaultAdmin } from "./src/controllers/employeeController.js";
+import router from "./src/routes/index.js";
 
 dotenv.config();
 const app = express();

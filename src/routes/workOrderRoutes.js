@@ -3,8 +3,10 @@ import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
 import {
   GetWorkOrdersByUnit,
+  createRepairJob,
   deleteFileApi,
   getDetailsOfWorkOrderWithPopulated,
+  getEmployeeAssignedWorkOverview,
   updateWorkOrderDetails,
   uploadWorkImages,
   workOrderAssign,
@@ -20,6 +22,7 @@ workOrderRoutes.get(
   [verifyToken, checkAdmin],
   GetWorkOrdersByUnit
 );
+workOrderRoutes.post("/add-job", [verifyToken, checkAdmin], createRepairJob);
 workOrderRoutes.get("/:id", [verifyToken], getDetailsOfWorkOrderWithPopulated);
 workOrderRoutes.put("/", [verifyToken, checkAdmin], updateWorkOrderDetails);
 workOrderRoutes.post(
@@ -38,5 +41,10 @@ workOrderRoutes.post(
   uploadWorkImages
 );
 workOrderRoutes.delete("/delete-file-api/:id", [verifyToken, deleteFileApi]);
+workOrderRoutes.post(
+  "/emp-jobs",
+  [verifyToken],
+  getEmployeeAssignedWorkOverview
+);
 
 export default workOrderRoutes;
