@@ -7,6 +7,8 @@ import {
   updateEmployee,
   deleteEmployee,
   getAllEmployeeForSelect,
+  changePasswordForceFullyController,
+  resetEmployeePwdController,
 } from "../controllers/employeeController.js";
 import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
@@ -18,6 +20,16 @@ employeeRoutes.post("/login", login);
 employeeRoutes.get("/logout", [verifyToken], logout);
 employeeRoutes.get("/", [verifyToken, checkAdmin], getAllEmployees);
 employeeRoutes.put("/update", [verifyToken, checkAdmin], updateEmployee);
+employeeRoutes.put(
+  "/set-pwd",
+  [verifyToken],
+  changePasswordForceFullyController
+);
+employeeRoutes.put(
+  "/reset-pwd/:id",
+  [verifyToken, checkAdmin],
+  resetEmployeePwdController
+);
 employeeRoutes.delete(
   "/delete/:userId",
   [verifyToken, checkAdmin],

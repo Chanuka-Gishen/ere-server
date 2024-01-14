@@ -14,8 +14,10 @@ import { employeeRegisterSchema } from "../schemas/employeeSchema.js";
 import {
   employee_deleted,
   employee_exists,
+  employee_inactive,
   employee_incorrect_pwd,
   employee_not_found,
+  employee_password_not_match,
   employee_registered,
   employee_updated,
   employee_username_exists,
@@ -28,6 +30,8 @@ import { generateToken } from "../services/jwtServices.js";
 import { employeeUpdateSchema } from "../schemas/employeeUpdateSchema.js";
 import { ObjectId } from "mongodb";
 import { HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
+import { employeeForcePwdChange } from "../schemas/employeeForcePwdChange.js";
+import { createRandomPassword } from "../services/commonServices.js";
 
 // Create default admin
 export const createDefaultAdmin = async () => {
@@ -71,10 +75,10 @@ export const registerEmployee = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, error.message));
     }
 
-    const { userFirstName, userLastName, userRole, userPassword } = value;
+    const { userFirstName, userLastName, userRole } = value;
 
     const userName = (
-      userFirstName + process.env.USERNAME_SUFFIX
+      userFirstName.replace(/\s/g, "") + process.env.USERNAME_SUFFIX
     ).toLowerCase();
 
     const userExists = await Employee.findOne({ userName });
@@ -88,7 +92,7 @@ export const registerEmployee = async (req, res) => {
       userFullName: `${userFirstName} ${userLastName}`,
       userName,
       userRole,
-      userPassword,
+      userPassword: createRandomPassword(),
     });
 
     await newUser.save();
@@ -98,6 +102,77 @@ export const registerEmployee = async (req, res) => {
       .json(ApiResponse.response(employee_success_code, employee_registered));
   } catch (error) {
     console.error(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const changePasswordForceFullyController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await Employee.findById(new ObjectId(userId));
+
+    if (!user) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.response(bad_request_code, employee_not_found));
+    }
+
+    const { error, value } = employeeForcePwdChange.validate(req.body);
+
+    if (error) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, error.message));
+    }
+
+    const { userPassword, userConfirmPassword } = value;
+
+    if (userPassword != userConfirmPassword) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, employee_password_not_match));
+    }
+
+    user.userPassword = userPassword;
+    user.userNewPwd = false;
+
+    const savedUser = await user.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(employee_success_code, success_message, savedUser)
+      );
+  } catch (error) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const resetEmployeePwdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const employee = await Employee.findById(new ObjectId(id));
+
+    if (!employee) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.response(bad_request_code, employee_not_found));
+    }
+
+    employee.userNewPwd = true;
+
+    await employee.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(employee_success_code, success_message));
+  } catch (error) {
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -121,6 +196,12 @@ export const login = async (req, res) => {
       return res
         .status(httpStatus.OK)
         .json(ApiResponse.response(employee_error_code, employee_not_found));
+
+    if (!user.userIsActive) {
+      return res
+        .status(httpStatus.OK)
+        .json(ApiResponse.response(employee_error_code, employee_inactive));
+    }
 
     const isMatch = await bcrypt.compare(userPassword, user.userPassword);
     if (!isMatch)
@@ -238,7 +319,11 @@ export const deleteEmployee = async (req, res) => {
         .json(ApiResponse.error(employee_error_code, employee_not_found));
     }
 
-    await Employee.deleteOne(existingUser);
+    // await Employee.deleteOne(existingUser);
+    // Make employee inactive in that case
+    existingUser.userIsActive = false;
+
+    await existingUser.save();
 
     return res
       .status(httpStatus.OK)
@@ -273,7 +358,7 @@ export const getAllEmployees = async (req, res) => {
 export const getAllEmployeeForSelect = async (req, res) => {
   try {
     const employees = await Employee.find(
-      { userRole: { $in: [TECHNICIAN_ROLE, HELPER_ROLE] } }, // Filter by roles
+      { userRole: { $in: [TECHNICIAN_ROLE, HELPER_ROLE] }, userIsActive: true }, // Filter by roles and active sts
       { _id: 1, userFullName: 1, userRole: 1 }
     );
 
