@@ -7,6 +7,4 @@ export const employeeRegisterSchema = Joi.object({
   userRole: Joi.string()
     .valid(ADMIN_ROLE, TECHNICIAN_ROLE, HELPER_ROLE)
     .required(),
-  userPassword: Joi.string().required(),
-  userConfirmPassword: Joi.string().required(),
 });

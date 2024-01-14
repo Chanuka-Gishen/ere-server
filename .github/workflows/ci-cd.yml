@@ -1,0 +1,17 @@
+name: Express CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - prod
+
+jobs:
+  deploy-to-dev:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Development
+        run: echo "Deploying to development environment..."
+
+      # Add your additional deployment steps here

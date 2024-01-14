@@ -7,10 +7,12 @@ export const success_message = "Success";
 export const employee_exists = "Employee Exists";
 export const employee_registered = "Employee Registered";
 export const employee_updated = "Employee Successfully Updated";
-export const employee_deleted = "Employee deleted";
+export const employee_deleted = "Employee terminated";
 export const employee_not_found = "Employee Not Found";
 export const employee_username_exists = "User name exists";
 export const employee_incorrect_pwd = "Incorrect Password";
+export const employee_password_not_match = "Password not matching";
+export const employee_inactive = "You have been terminated";
 
 export const customer_exists = "Customer exists";
 export const customer_registered = "Customer registered";

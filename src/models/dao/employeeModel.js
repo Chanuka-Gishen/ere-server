@@ -29,6 +29,16 @@ const employeeSchema = new Schema({
     type: String,
     required: true,
   },
+  userNewPwd: {
+    type: Boolean,
+    required: true,
+    default: true,
+  },
+  userIsActive: {
+    type: Boolean,
+    required: true,
+    default: true,
+  },
   userToken: {
     type: String,
   },
