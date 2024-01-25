@@ -204,7 +204,7 @@ export const login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(userPassword, user.userPassword);
-    if (!isMatch)
+    if (!isMatch && !user.userNewPwd)
       return res
         .status(httpStatus.OK)
         .json(
