@@ -94,8 +94,6 @@ const generatePublicUrl = async (drive, fileId) => {
       fields: "webViewLink, webContentLink",
     });
 
-    //console.log(result.data);
-
     return result.data;
   } catch (error) {
     console.error(`Error Generating Url :`, error.message);
@@ -169,8 +167,6 @@ export const uploadImagesToDrive = async (
         requestBody: requestBody,
         media: media,
       });
-
-      console.log(response);
 
       const publicLink = await generatePublicUrl(drive, response.data.id);
 
