@@ -94,8 +94,6 @@ const generatePublicUrl = async (drive, fileId) => {
       fields: "webViewLink, webContentLink",
     });
 
-    //console.log(result.data);
-
     return result.data;
   } catch (error) {
     console.error(`Error Generating Url :`, error.message);
@@ -129,7 +127,10 @@ export const uploadImagesToDrive = async (
   // await handleDeleteFolders(drive, workId);
 
   // Create the base folder if it doesn't exist
-  const baseFolderId = await createFolder(drive, "ERE-SM-UPLOADS");
+  const baseFolderId = await createFolder(
+    drive,
+    process.env.DRIVE_PARENT_FOLDER
+  );
 
   // Create the customer folder if it doesn't exist
   const customerFolderId = await createFolder(
@@ -167,8 +168,6 @@ export const uploadImagesToDrive = async (
         media: media,
       });
 
-      console.log(response);
-
       const publicLink = await generatePublicUrl(drive, response.data.id);
 
       uploads.push({
@@ -178,10 +177,6 @@ export const uploadImagesToDrive = async (
         publicUrl: publicLink.webViewLink,
         contentUrl: publicLink.webContentLink,
       });
-
-      console.log(
-        `Uploaded file ${fileObject.originalname}. ID: ${response.data.id}`
-      );
     } catch (error) {
       console.error(
         `Error uploading file ${fileObject.originalname}:`,
