@@ -202,7 +202,7 @@ export const uploadImagesToDrive = async (
 export const uploadQrCodes = async () => {
   const drive = google.drive({ version: "v3", auth });
 
-  const numQRCodes = 10;
+  const numQRCodes = 50;
 
   // Create an array to store data for each QR code
   const qrCodeArray = [];
@@ -219,7 +219,7 @@ export const uploadQrCodes = async () => {
 
     const fileName = generateQrCodeFileName(sequenceValue);
     const formattedFileName = `${fileName}.png`;
-    const qrCodeData = process.env.CLIENT_URL + fileName;
+    const qrCodeData = `${process.env.CLIENT_URL}/unit/${fileName}`;
 
     const { tempFilePath } = await generateQrCodes(
       formattedFileName,
