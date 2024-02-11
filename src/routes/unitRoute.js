@@ -7,6 +7,6 @@ import {
 const unitRoutes = express.Router();
 
 unitRoutes.put("/update-qr-code", updateUnitQrCode);
-unitRoutes.put("/remove-qr-code", removeQrFromUnit);
+unitRoutes.put("/remove-qr-code/:id", removeQrFromUnit);
 
 export default unitRoutes;

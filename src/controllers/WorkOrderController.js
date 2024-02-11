@@ -140,7 +140,13 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
 
     const workOrder = await WorkOrder.findById(new ObjectId(id))
       .populate("workOrderCustomerId")
-      .populate("workOrderUnitReference")
+      .populate({
+        path: "workOrderUnitReference",
+        populate: {
+          path: "unitQrCode",
+          model: "QRCode",
+        },
+      })
       .populate({
         path: "workOrderAssignedEmployees",
         select: "_id userFullName userRole", // Specify the fields you want to retrieve
