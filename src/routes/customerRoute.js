@@ -11,6 +11,7 @@ import {
   AddCustomerUnit,
   getCustomerUnits,
   updateCustomerUnit,
+  updateUnitSerialNumber,
 } from "../controllers/unitController.js";
 
 const customerRoutes = express.Router();
@@ -25,6 +26,11 @@ customerRoutes.get(
 customerRoutes.put("/", [verifyToken, checkAdmin], updateCustomer);
 customerRoutes.post("/unit", [verifyToken, checkAdmin], AddCustomerUnit);
 customerRoutes.put("/unit", [verifyToken, checkAdmin], updateCustomerUnit);
+customerRoutes.put(
+  "/unit-details-update",
+  [verifyToken],
+  updateUnitSerialNumber
+);
 customerRoutes.get("/unit/:id", [verifyToken], getCustomerUnits);
 
 export default customerRoutes;

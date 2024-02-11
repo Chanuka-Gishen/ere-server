@@ -36,9 +36,7 @@ import { createRandomPassword } from "../services/commonServices.js";
 // Create default admin
 export const createDefaultAdmin = async () => {
   try {
-    const userName = (
-      process.env.DEFAULT_ADMIN_FNAME + process.env.USERNAME_SUFFIX
-    ).toLowerCase();
+    const userName = process.env.DEFAULT_ADMIN_FNAME.toLowerCase();
     const existingAdmin = await Employee.findOne({ userName });
 
     if (existingAdmin) {
@@ -77,9 +75,7 @@ export const registerEmployee = async (req, res) => {
 
     const { userFirstName, userLastName, userRole } = value;
 
-    const userName = (
-      userFirstName.replace(/\s/g, "") + process.env.USERNAME_SUFFIX
-    ).toLowerCase();
+    const userName = userFirstName.replace(/\s/g, "").toLowerCase();
 
     const userExists = await Employee.findOne({ userName });
 
@@ -277,9 +273,7 @@ export const updateEmployee = async (req, res) => {
         .json(ApiResponse.error(employee_error_code, employee_not_found));
     }
 
-    const userName = (
-      userFirstName + process.env.USERNAME_SUFFIX
-    ).toLowerCase();
+    const userName = userFirstName.toLowerCase();
 
     const existingUserName = await Employee.findOne({ userName });
 
