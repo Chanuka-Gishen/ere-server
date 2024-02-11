@@ -10,7 +10,6 @@ const unitSchema = new Schema({
   },
   unitSerialNo: {
     type: String,
-    required: true,
   },
   unitCustomerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -33,6 +32,11 @@ const unitSchema = new Schema({
     type: String,
     enum: [ACTIVE, INCATIVE],
     default: ACTIVE,
+  },
+  unitQrCode: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "QRCode",
+    default: null,
   },
 });
 

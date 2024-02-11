@@ -3,6 +3,7 @@ import {
   COMPLETED_STATUS,
   CREATED_STATUS,
   SCHEDULED_STATUS,
+  WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
 } from "../../constants/commonConstants.js";
@@ -64,7 +65,7 @@ const workOrderSchema = new Schema({
   workOrderType: {
     type: String,
     required: true,
-    enum: [WORK_ORD_SERVICE, WORK_ORD_REPAIR],
+    enum: [WORK_ORD_INSTALLATION, WORK_ORD_SERVICE, WORK_ORD_REPAIR],
   },
   workOrderStatus: {
     type: String,

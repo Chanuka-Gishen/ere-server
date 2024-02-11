@@ -11,7 +11,7 @@ import {
   uploadWorkImages,
   workOrderAssign,
   workOrderCompleteState,
-} from "../controllers/WorkOrderController.js";
+} from "../controllers/workOrderController.js";
 import multer from "multer";
 
 const workOrderRoutes = express.Router();
@@ -40,7 +40,7 @@ workOrderRoutes.post(
   [verifyToken, upload.array("files")],
   uploadWorkImages
 );
-workOrderRoutes.delete("/delete-file-api/:id", [verifyToken, deleteFileApi]);
+workOrderRoutes.delete("/delete-file-api/:id", [verifyToken], deleteFileApi);
 workOrderRoutes.post(
   "/emp-jobs",
   [verifyToken],

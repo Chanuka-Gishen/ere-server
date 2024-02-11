@@ -21,12 +21,19 @@ import {
 } from "../constants/messageConstants.js";
 import { Image, WorkOrder } from "../models/dao/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
-import { generateWorkOrderNumber } from "../services/commonServices.js";
+import {
+  generateWorkOrderNumber,
+  getSequenceType,
+} from "../services/commonServices.js";
 import Customer from "../models/dao/customerModel.js";
 import {
   COMPLETED_STATUS,
   CREATED_STATUS,
+  INSTALLATION_SEQ,
+  REPAIR_SEQ,
   SCHEDULED_STATUS,
+  SERVICE_SEQ,
+  WORK_ORD_INSTALLATION,
   WORK_ORD_SERVICE,
 } from "../constants/commonConstants.js";
 import { WorkOrderAssignSchema } from "../schemas/woAssignEmployeeSchema.js";
@@ -37,6 +44,7 @@ import {
 import Employee from "../models/dao/employeeModel.js";
 import { ADMIN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
+import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 
 export const createRepairJob = async (req, res) => {
   try {
@@ -66,12 +74,11 @@ export const createRepairJob = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, customer_not_found));
     }
 
-    const code = generateWorkOrderNumber(
-      customer.customerName,
-      unit.unitSerialNo,
-      workOrderType,
-      new Date(workOrderScheduledDate)
-    );
+    await updateSequenceValue(REPAIR_SEQ);
+
+    const sequenceValue = await getSequenceValue(REPAIR_SEQ);
+
+    const code = generateWorkOrderNumber(REPAIR_SEQ, sequenceValue);
 
     const newJob = new WorkOrder({
       workOrderType: workOrderType,
@@ -193,20 +200,21 @@ export const updateWorkOrderDetails = async (req, res) => {
         unit.unitNextMaintenanceDate = workOrderScheduledDate;
         await unit.save();
       }
+    }
 
-      const customer = await Customer.findById(
-        new ObjectId(workOrder.workOrderCustomerId)
+    if (
+      workOrder.workOrderStatus === CREATED_STATUS &&
+      workOrder.workOrderType != workOrderType
+    ) {
+      const sequenceValue = await getSequenceValue(
+        getSequenceType(workOrderType)
       );
 
       workOrder.workOrderCode = generateWorkOrderNumber(
-        customer.customerName,
-        unit.unitSerialNo,
-        workOrder.workOrderType,
-        workOrderScheduledDate
+        getSequenceType(workOrderType),
+        sequenceValue
       );
-    }
 
-    if (workOrder.workOrderStatus === CREATED_STATUS) {
       workOrder.workOrderType = workOrderType;
     }
 
@@ -290,22 +298,22 @@ export const workOrderCompleteState = async (req, res) => {
 
     const workOrder = await WorkOrder.findById(new ObjectId(id));
 
-    if (workOrder.workOrderStatus === CREATED_STATUS) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json(ApiResponse.error(bad_request_code, workOrder_not_scheduled));
-    }
-
     if (!workOrder) {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
+    if (workOrder.workOrderStatus === CREATED_STATUS) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, workOrder_not_scheduled));
+    }
+
     workOrder.workOrderStatus = COMPLETED_STATUS;
     workOrder.workOrderCompletedDate = new Date();
 
-    await workOrder.save();
+    const savedWorkOrder = await workOrder.save();
 
     const unit = await Unit.findById(
       new ObjectId(workOrder.workOrderUnitReference)
@@ -325,26 +333,30 @@ export const workOrderCompleteState = async (req, res) => {
 
     const savedUnit = await unit.save();
 
-    const customer = await Customer.findById(
-      new ObjectId(workOrder.workOrderCustomerId)
-    );
+    if (
+      savedWorkOrder.workOrderType === WORK_ORD_SERVICE ||
+      savedWorkOrder.workOrderType === WORK_ORD_INSTALLATION
+    ) {
+      const customer = await Customer.findById(
+        new ObjectId(workOrder.workOrderCustomerId)
+      );
 
-    const newCode = generateWorkOrderNumber(
-      customer.customerName,
-      savedUnit.unitSerialNo,
-      WORK_ORD_SERVICE,
-      savedUnit.unitNextMaintenanceDate
-    );
+      await updateSequenceValue(SERVICE_SEQ);
 
-    const newWorkOrder = new WorkOrder({
-      workOrderCode: newCode,
-      workOrderScheduledDate: savedUnit.unitNextMaintenanceDate,
-      workOrderCustomerId: customer._id,
-      workOrderType: WORK_ORD_SERVICE,
-      workOrderUnitReference: savedUnit._id,
-    });
+      const sequenceValue = await getSequenceValue(SERVICE_SEQ);
 
-    await newWorkOrder.save();
+      const newCode = generateWorkOrderNumber(SERVICE_SEQ, sequenceValue);
+
+      const newWorkOrder = new WorkOrder({
+        workOrderCode: newCode,
+        workOrderScheduledDate: savedUnit.unitNextMaintenanceDate,
+        workOrderCustomerId: customer._id,
+        workOrderType: WORK_ORD_SERVICE,
+        workOrderUnitReference: savedUnit._id,
+      });
+
+      await newWorkOrder.save();
+    }
 
     return res
       .status(httpStatus.OK)

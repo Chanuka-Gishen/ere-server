@@ -8,6 +8,12 @@ import mongoose from "mongoose";
 import ApiResponse from "./src/services/ApiResponse.js";
 import { createDefaultAdmin } from "./src/controllers/employeeController.js";
 import router from "./src/routes/index.js";
+import { addSequence } from "./src/controllers/sequenceController.js";
+import {
+  deleteFoldersAndFiles,
+  uploadQrCodes,
+} from "./src/services/googleApi.js";
+import { createBulkQrCodes } from "./src/controllers/qrController.js";
 
 dotenv.config();
 const app = express();
@@ -50,7 +56,14 @@ db.on("error", (error) => {
 db.once("connected", () => {
   console.log("Connected to MongoDB");
 
-  // createDefaultAdmin();
+  //createDefaultAdmin();
+
+  //addSequence();
+
+  //createBulkQrCodes();
+
+  //deleteFoldersAndFiles();
+
   // Start your Express server here
   app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);

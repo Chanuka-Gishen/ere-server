@@ -1,6 +1,16 @@
-import { log } from "console";
 import { google } from "googleapis";
-import stream from "stream";
+import stream, { Readable } from "stream";
+import fs from "fs";
+import {
+  getSequenceValue,
+  updateSequenceValue,
+} from "../controllers/sequenceController.js";
+import { QR_SEQUENCE } from "../constants/commonConstants.js";
+import {
+  createReadableStream,
+  generateQrCodeFileName,
+} from "./commonServices.js";
+import { generateQrCodes } from "./qrServices.js";
 
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
@@ -187,4 +197,90 @@ export const uploadImagesToDrive = async (
   }
 
   return uploads;
+};
+
+export const uploadQrCodes = async () => {
+  const drive = google.drive({ version: "v3", auth });
+
+  const numQRCodes = 10;
+
+  // Create an array to store data for each QR code
+  const qrCodeArray = [];
+
+  const baseFolderId = await createFolder(
+    drive,
+    process.env.DRIVE_QR_PARENT_FOLDER
+  );
+
+  for (let i = 1; i <= numQRCodes; i++) {
+    await updateSequenceValue(QR_SEQUENCE);
+
+    const sequenceValue = await getSequenceValue(QR_SEQUENCE);
+
+    const fileName = generateQrCodeFileName(sequenceValue);
+    const formattedFileName = `${fileName}.png`;
+    const qrCodeData = process.env.CLIENT_URL + fileName;
+
+    const { tempFilePath } = await generateQrCodes(
+      formattedFileName,
+      qrCodeData
+    );
+
+    const imageBuffer = fs.readFileSync(tempFilePath);
+
+    const requestBody = {
+      name: formattedFileName,
+      mimeType: "image/png",
+      parents: [baseFolderId],
+    };
+
+    const media = {
+      body: Readable.from([imageBuffer]),
+    };
+
+    try {
+      const response = await drive.files.create({
+        requestBody: requestBody,
+        media: media,
+      });
+
+      const publicLink = await generatePublicUrl(drive, response.data.id);
+
+      qrCodeArray.push({
+        qrCodeName: fileName,
+        qrCodeFileId: response.data.id,
+        qrCodeFileName: response.data.name,
+        qrCodeMimeType: response.data.mimeType,
+        qrCodeFileViewUrl: publicLink.webViewLink,
+        qrCodeFileDownloadUrl: publicLink.webContentLink,
+      });
+    } catch (error) {
+      console.error(
+        `Error uploading file ${fileObject.originalname}:`,
+        error.message
+      );
+      throw error;
+    } finally {
+      fs.unlinkSync(tempFilePath);
+    }
+  }
+
+  return qrCodeArray;
+};
+
+// Reset folders and files
+export const deleteFoldersAndFiles = async () => {
+  const drive = google.drive({ version: "v3", auth });
+  const filesResponse = await drive.files.list({
+    q: "trashed=false", // Only retrieve files that are not in trash
+    fields: "files(id, name, mimeType)",
+  });
+
+  // Iterate through files and delete each one
+  for (const file of filesResponse.data.files) {
+    drive.files.delete({
+      fileId: file.id,
+    });
+    console.log(`File '${file.name}' deleted`);
+  }
 };

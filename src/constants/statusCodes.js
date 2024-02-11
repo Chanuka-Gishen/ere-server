@@ -24,3 +24,6 @@ export const workorder_success_code = "WORK-001";
 export const workorder_info_code = "WORK-002";
 export const workorder_warning_code = "WORK-003";
 export const workorder_error_code = "WORK-004";
+
+export const qr_success_code = "QRCO-001";
+export const qr_error_code = "QRCO-004";
