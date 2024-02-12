@@ -305,7 +305,9 @@ export const getCustomerUnits = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const units = await Unit.find({ unitCustomerId: new ObjectId(id) });
+    const units = await Unit.find({
+      unitCustomerId: new ObjectId(id),
+    }).populate("unitQrCode");
 
     return res
       .status(httpStatus.OK)
