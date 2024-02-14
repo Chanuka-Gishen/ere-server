@@ -15,7 +15,6 @@ import {
   customer_unit_added,
   customer_unit_not_found,
   customer_unit_updated,
-  qr_code_name_missing,
   qr_not_available,
   qr_not_found,
   qr_removed,
@@ -47,6 +46,7 @@ export const AddCustomerUnit = async (req, res) => {
 
     const {
       customerId,
+      unitBrand,
       unitModel,
       unitSerialNo,
       unitInstalledDate,
@@ -65,6 +65,7 @@ export const AddCustomerUnit = async (req, res) => {
 
     const newUnit = new Unit({
       unitCustomerId: customer._id,
+      unitBrand,
       unitModel,
       unitSerialNo,
       unitInstalledDate,
@@ -116,6 +117,7 @@ export const updateCustomerUnit = async (req, res) => {
 
     const {
       _id,
+      unitBrand,
       unitModel,
       unitSerialNo,
       unitInstalledDate,
@@ -132,19 +134,16 @@ export const updateCustomerUnit = async (req, res) => {
         .json(ApiResponse.error(customer_error_code, customer_unit_not_found));
     }
 
+    unit.unitBrand = unitBrand;
     unit.unitModel = unitModel;
 
     if (
       unit.unitSerialNo != unitSerialNo ||
       unit.unitNextMaintenanceDate != unitNextMaintenanceDate
     ) {
-      const customer = await Customer.findById(
-        new ObjectId(unit.unitCustomerId)
-      );
-
       const workOrders = await WorkOrder.aggregate([
         { $match: { workOrderUnitReference: new ObjectId(unit._id) } },
-        { $sort: { workOrderScheduledDate: -1 } }, // Sort in descending order by scheduled date
+        { $sort: { workOrderScheduledDate: -1 } },
         { $limit: 1 },
       ]);
 

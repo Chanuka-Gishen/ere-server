@@ -4,6 +4,11 @@ import { ACTIVE, INCATIVE } from "../../constants/commonConstants.js";
 const Schema = mongoose.Schema;
 
 const unitSchema = new Schema({
+  unitBrand: {
+    type: String,
+    required: true,
+    default: null,
+  },
   unitModel: {
     type: String,
     required: true,
