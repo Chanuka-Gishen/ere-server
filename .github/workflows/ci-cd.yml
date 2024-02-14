@@ -34,6 +34,6 @@ jobs:
       - name: Delete old files
         run: cd /home/ec2-user/server/ere-server && sudo rm -r README.md  index.js  package.json  src  yarn.lock node_modules  package-lock.json
       - name: Copy files
-        run: cd /home/ec2-user/actions-runner-ere-backend/_work/ere-server && cp ere-server/* /home/ec2-user/server/ere-server
+        run: cd /home/ec2-user/actions-runner-ere-backend/_work/ere-server && sudo cp -r ere-server/* /home/ec2-user/server/ere-server
       - name: Install dependencies
         run: cd /home/ec2-user/server/ere-server/ && sudo npm i
