@@ -16,7 +16,7 @@ jobs:
         run: echo "Main deployment"
 
   deploy-prod:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
 
     steps:
