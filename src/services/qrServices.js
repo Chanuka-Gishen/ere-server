@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { createCanvas, loadImage } from "canvas";
 
-const qrFolderPath = "src/tmp";
+const qrFolderPath = process.env.QR_TMP_FOLDER_PATH;
 
 export const generateQrCodes = async (fileName, url) => {
   try {
