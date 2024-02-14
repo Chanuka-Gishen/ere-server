@@ -15,6 +15,7 @@ import {
 } from "../constants/messageConstants.js";
 import { ObjectId } from "mongodb";
 import { customerUpdateSchema } from "../schemas/customerUpdateScehema.js";
+import Unit from "../models/dao/unitModel.js";
 
 export const registerCustomer = async (req, res) => {
   try {
@@ -42,11 +43,8 @@ export const registerCustomer = async (req, res) => {
         .json(ApiResponse.error(customer_error_code, customer_exists));
     }
 
-    const customerCode = createClientCode(customerName);
-
     const customer = new Customer({
       customerName: customerName,
-      customerCode: customerCode,
       customerAddress: customerAddress,
       customerEmail: customerEmail,
       customerTel: {
@@ -84,6 +82,7 @@ export const updateCustomer = async (req, res) => {
       customerMobile,
       customerLand,
       customerEmail,
+      customerLocation,
     } = value;
 
     const customer = await Customer.findById(new ObjectId(customerId));
@@ -99,6 +98,7 @@ export const updateCustomer = async (req, res) => {
     customer.customerEmail = customerEmail;
     customer.customerTel.mobile = customerMobile;
     customer.customerTel.landline = customerLand;
+    customer.customerLocation = customerLocation;
 
     await customer.save();
 
@@ -115,7 +115,64 @@ export const updateCustomer = async (req, res) => {
 
 export const getAllCustomers = async (req, res) => {
   try {
-    const customers = await Customer.find();
+    //const customers = await Customer.find();
+
+    const pipeline = [
+      // Fetch all customers
+      {
+        $match: {}, // You can add any match condition if needed
+      },
+      // Join customers with units
+      {
+        $lookup: {
+          from: "units",
+          localField: "_id",
+          foreignField: "unitCustomerId",
+          as: "units",
+        },
+      },
+      // Sort units within each group by nextMaintenanceDate
+      {
+        $unwind: "$units", // Unwind units to sort
+      },
+      {
+        $sort: {
+          "units.unitNextMaintenanceDate": 1, // Sort units by nextMaintenanceDate
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          customer: { $first: "$$ROOT" }, // Preserve the customer document
+          firstUnit: { $first: "$units" }, // Take the first unit from each group
+        },
+      },
+      {
+        $addFields: {
+          "customer.nextMaintenanceDate": "$firstUnit.unitNextMaintenanceDate", // Replace "fieldName" with the actual field name
+        },
+      },
+      // Replace root with the customer document
+      {
+        $replaceRoot: {
+          newRoot: "$customer",
+        },
+      },
+      // Optionally project to exclude units object
+      {
+        $project: {
+          units: 0,
+        },
+      },
+      //Optionally sort customers by some criteria
+      {
+        $sort: {
+          nextMaintenanceDate: 1,
+        },
+      },
+    ];
+
+    const customers = await Customer.aggregate(pipeline);
 
     return res
       .status(httpStatus.OK)
@@ -153,14 +210,4 @@ export const getCustomer = async (req, res) => {
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
   }
-};
-
-const createClientCode = (clientName) => {
-  // Split the full name into words
-  const words = clientName.split(" ");
-
-  // Extract the first letter of each word and concatenate them
-  const initials = words.map((word) => word.charAt(0)).join("");
-
-  return initials.slice(0, 4).toUpperCase();
 };

@@ -26,6 +26,10 @@ const customerSchema = new Schema({
     type: String,
     default: null,
   },
+  customerLocation: {
+    type: String,
+    default: null,
+  },
 });
 
 const Customer = mongoose.model("Customer", customerSchema);

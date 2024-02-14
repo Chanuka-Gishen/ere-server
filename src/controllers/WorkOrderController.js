@@ -29,7 +29,6 @@ import Customer from "../models/dao/customerModel.js";
 import {
   COMPLETED_STATUS,
   CREATED_STATUS,
-  INSTALLATION_SEQ,
   REPAIR_SEQ,
   SCHEDULED_STATUS,
   SERVICE_SEQ,
@@ -113,9 +112,40 @@ export const GetWorkOrdersByUnit = async (req, res) => {
         .json(ApiResponse.error(customer_error_code, customer_unit_not_found));
     }
 
-    const workOrders = await WorkOrder.find({
-      workOrderUnitReference: new ObjectId(unit._id),
-    });
+    const workOrders = await WorkOrder.aggregate([
+      {
+        $match: { workOrderUnitReference: new ObjectId(unit._id) },
+      },
+      {
+        $facet: {
+          scheduled: [
+            { $match: { workOrderStatus: SCHEDULED_STATUS } },
+            { $sort: { workOrderScheduledDate: 1 } },
+          ],
+          created: [
+            { $match: { workOrderStatus: CREATED_STATUS } },
+            { $sort: { workOrderScheduledDate: 1 } },
+          ],
+          completed: [
+            { $match: { workOrderStatus: COMPLETED_STATUS } },
+            { $sort: { workOrderScheduledDate: 1 } },
+          ],
+        },
+      },
+      {
+        $project: {
+          workOrders: {
+            $concatArrays: ["$scheduled", "$created", "$completed"],
+          },
+        },
+      },
+      {
+        $unwind: "$workOrders",
+      },
+      {
+        $replaceRoot: { newRoot: "$workOrders" },
+      },
+    ]);
 
     return res
       .status(httpStatus.OK)
@@ -477,7 +507,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
 
     if (employee.userRole === ADMIN_ROLE) {
       result = await WorkOrder.find({
-        workOrderStatus: SCHEDULED_STATUS,
+        workOrderStatus: { $in: [SCHEDULED_STATUS, CREATED_STATUS] },
       })
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
