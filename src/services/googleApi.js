@@ -6,23 +6,15 @@ import {
   updateSequenceValue,
 } from "../controllers/sequenceController.js";
 import { QR_SEQUENCE } from "../constants/commonConstants.js";
-import {
-  createReadableStream,
-  generateQrCodeFileName,
-} from "./commonServices.js";
+import { generateQrCodeFileName } from "./commonServices.js";
 import { generateQrCodes } from "./qrServices.js";
 
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: "api_credentials.json",
+  keyFile: process.env.GOOGLE_CREDENTIALS_FILE_PATH,
   scopes: SCOPES,
 });
-
-const permissions = {
-  role: "reader",
-  type: "anyone",
-};
 
 // Create the folder before saving the images
 
