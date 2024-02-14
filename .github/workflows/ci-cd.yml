@@ -7,11 +7,25 @@ on:
       - prod
 
 jobs:
-  deploy-to-dev:
+  deploy-main:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Deploy to Development
-        run: echo "Deploying to development environment..."
+      - name: Deploy to environment
+        run: echo "Main deployment"
 
-      # Add your additional deployment steps here
+  deploy-prod:
+    runs-on: self-hosted
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+      - name: Deploy to environment
+        run: echo "Production depolyment"

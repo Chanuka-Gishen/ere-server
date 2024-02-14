@@ -7,4 +7,5 @@ export const customerUpdateSchema = Joi.object({
   customerMobile: Joi.number().required(),
   customerLand: Joi.number().allow(null),
   customerEmail: Joi.string().email().allow(null),
+  customerLocation: Joi.string().allow(null),
 });
