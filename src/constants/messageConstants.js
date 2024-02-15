@@ -27,6 +27,7 @@ export const workOrder_assignees_required = "Assigned employees required";
 export const workOrder_completed = "WorkOrder completed";
 export const workOrder_empty_images = "Images required";
 export const workOrder_not_scheduled = "Work order not scheduled";
+export const workOrder_tip_missing = "WorkOrder ID / tip amount missing";
 
 export const qr_code_name_missing = "QR code namer required";
 export const qr_not_found = "QR code not found";

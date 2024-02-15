@@ -83,8 +83,17 @@ const workOrderSchema = new Schema({
     required: true,
   },
   workOrderAssignedEmployees: [
-    { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+    {
+      employee: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
+      tip: {
+        amount: { type: Number, default: 0 },
+      },
+    },
   ],
+  workOrderEmployeeTip: {
+    type: Number,
+    default: 0,
+  },
   workOrderCreatedAt: {
     type: Date,
     default: Date.now(),

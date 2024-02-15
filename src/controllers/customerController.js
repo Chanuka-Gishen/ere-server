@@ -126,48 +126,55 @@ export const getAllCustomers = async (req, res) => {
       {
         $lookup: {
           from: "units",
-          localField: "_id",
-          foreignField: "unitCustomerId",
+          let: { customerId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$unitCustomerId", "$$customerId"] }, // Match units with the same customer id
+              },
+            },
+            {
+              $sort: {
+                unitNextMaintenanceDate: 1, // Sort units by nextMaintenanceDate
+              },
+            },
+            {
+              $limit: 1, // Take only the first unit
+            },
+          ],
           as: "units",
         },
       },
-      // Sort units within each group by nextMaintenanceDate
-      {
-        $unwind: "$units", // Unwind units to sort
-      },
-      {
-        $sort: {
-          "units.unitNextMaintenanceDate": 1, // Sort units by nextMaintenanceDate
-        },
-      },
-      {
-        $group: {
-          _id: "$_id",
-          customer: { $first: "$$ROOT" }, // Preserve the customer document
-          firstUnit: { $first: "$units" }, // Take the first unit from each group
-        },
-      },
+      // Project to add a field indicating if the customer has units
       {
         $addFields: {
-          "customer.nextMaintenanceDate": "$firstUnit.unitNextMaintenanceDate", // Replace "fieldName" with the actual field name
+          hasUnits: { $gt: [{ $size: "$units" }, 0] }, // Check if units array is not empty
         },
       },
-      // Replace root with the customer document
+      // Add nextMaintenanceDate only if units exist for the customer
       {
-        $replaceRoot: {
-          newRoot: "$customer",
+        $addFields: {
+          nextMaintenanceDate: {
+            $cond: {
+              if: "$hasUnits",
+              then: { $arrayElemAt: ["$units.unitNextMaintenanceDate", 0] }, // Take nextMaintenanceDate of the first unit
+              else: null, // Set to null if no units exist
+            },
+          },
         },
       },
-      // Optionally project to exclude units object
+      // Sort customers with units first by nextMaintenanceDate of the first unit
+      {
+        $sort: {
+          hasUnits: -1, // Sort by whether the customer has units (customers with units come first)
+          nextMaintenanceDate: 1, // Then sort by nextMaintenanceDate of the first unit
+        },
+      },
+      // Optionally project to exclude units object and hasUnits field
       {
         $project: {
           units: 0,
-        },
-      },
-      //Optionally sort customers by some criteria
-      {
-        $sort: {
-          nextMaintenanceDate: 1,
+          hasUnits: 0,
         },
       },
     ];
