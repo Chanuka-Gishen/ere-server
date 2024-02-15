@@ -18,10 +18,12 @@ import {
   workOrder_empty_images,
   workOrder_not_found,
   workOrder_not_scheduled,
+  workOrder_tip_missing,
 } from "../constants/messageConstants.js";
 import { Image, WorkOrder } from "../models/dao/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
+  divideSalaryAmongEmployees,
   generateWorkOrderNumber,
   getSequenceType,
 } from "../services/commonServices.js";
@@ -41,7 +43,7 @@ import {
   uploadImagesToDrive,
 } from "../services/googleApi.js";
 import Employee from "../models/dao/employeeModel.js";
-import { ADMIN_ROLE } from "../constants/role.js";
+import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 
@@ -179,7 +181,11 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
       })
       .populate({
         path: "workOrderAssignedEmployees",
-        select: "_id userFullName userRole", // Specify the fields you want to retrieve
+        select: "employee tipDetails",
+        populate: {
+          path: "employee",
+          select: "_id userFullName userRole",
+        },
       })
       .populate("workOrderImages.imageUploadedBy");
 
@@ -308,9 +314,12 @@ export const workOrderAssign = async (req, res) => {
       workOrder.workOrderStatus = SCHEDULED_STATUS;
     }
 
-    const employeeIds = workOrderAssignedEmployees.map(
-      (employee) => employee._id
-    );
+    const employeeIds = workOrderAssignedEmployees.map((employee) => ({
+      employee: employee._id,
+      tip: {
+        amount: 0,
+      },
+    }));
 
     workOrder.workOrderAssignedEmployees = employeeIds;
     workOrder.workOrderStatus = SCHEDULED_STATUS;
@@ -542,4 +551,65 @@ export const deleteFileApi = async (req, res) => {
   await deleteDriveFileAdmin(id);
 
   return res.status(httpStatus.OK).json({ message: "Success" });
+};
+
+export const updateWorkOrderEmployeeTips = async (req, res) => {
+  try {
+    const { id, amount } = req.body;
+
+    if (!id || !amount || amount < 0) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(workorder_error_code, workOrder_tip_missing));
+    }
+
+    const workOrder = await WorkOrder.findById(new ObjectId(id)).populate({
+      path: "workOrderAssignedEmployees",
+      select: "employee tipDetails",
+      populate: {
+        path: "employee",
+        select: "_id userFullName userRole",
+      },
+    });
+
+    if (!workOrder) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    const technicianCount = workOrder.workOrderAssignedEmployees.filter(
+      (record) => record.employee.userRole === TECHNICIAN_ROLE
+    );
+    const helperCount = workOrder.workOrderAssignedEmployees.filter(
+      (record) => record.employee.userRole === HELPER_ROLE
+    );
+
+    const { perTechnicianAmount, perHelperAmount } = divideSalaryAmongEmployees(
+      technicianCount.length,
+      helperCount.length,
+      amount
+    );
+
+    workOrder.workOrderEmployeeTip = amount;
+
+    workOrder.workOrderAssignedEmployees.forEach((assignees) => {
+      if (assignees.employee.userRole === TECHNICIAN_ROLE) {
+        assignees.tip.amount = perTechnicianAmount;
+      } else {
+        assignees.tip.amount = perHelperAmount;
+      }
+    });
+
+    await workOrder.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
 };

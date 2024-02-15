@@ -69,3 +69,33 @@ export const createReadableStream = (imageData) => {
   stream.push(null);
   return stream;
 };
+
+export const divideSalaryAmongEmployees = (
+  technicianCount,
+  helperCount,
+  totalSalary
+) => {
+  let perTechnicianAmount = 0;
+  let perHelperAmount = 0;
+
+  if (technicianCount > 0 && helperCount > 0) {
+    // Calculate the total share for technicians and helpers
+    const totalTechnicianShare = totalSalary * 0.6; // Technicians get 60% of the total
+    const totalHelperShare = totalSalary * 0.4; // Helpers get 40% of the total
+
+    // Calculate the amount each technician and helper will receive
+    perTechnicianAmount = totalTechnicianShare / technicianCount;
+    perHelperAmount = totalHelperShare / helperCount;
+  } else if (technicianCount > 0) {
+    // Only technicians, divide the total salary among technicians
+    perTechnicianAmount = totalSalary / technicianCount;
+  } else if (helperCount > 0) {
+    // Only helpers, divide the total salary among helpers
+    perHelperAmount = totalSalary / helperCount;
+  }
+
+  return {
+    perTechnicianAmount: perTechnicianAmount.toFixed(2), // Rounded to 2 decimal places
+    perHelperAmount: perHelperAmount.toFixed(2), // Rounded to 2 decimal places
+  };
+};

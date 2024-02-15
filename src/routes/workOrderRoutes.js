@@ -8,6 +8,7 @@ import {
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   updateWorkOrderDetails,
+  updateWorkOrderEmployeeTips,
   uploadWorkImages,
   workOrderAssign,
   workOrderCompleteState,
@@ -45,6 +46,11 @@ workOrderRoutes.post(
   "/emp-jobs",
   [verifyToken],
   getEmployeeAssignedWorkOverview
+);
+workOrderRoutes.put(
+  "/tips",
+  [verifyToken, checkAdmin],
+  updateWorkOrderEmployeeTips
 );
 
 export default workOrderRoutes;

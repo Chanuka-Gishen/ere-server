@@ -323,3 +323,41 @@ export const getCustomerUnits = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
+  try {
+    const { qrCodeName } = req.params;
+
+    const qrCode = await QRCodeModel.findOne({ qrCodeName: qrCodeName });
+
+    if (!qrCode) {
+      return res
+        .status(httpStatus.OK)
+        .json(ApiResponse.response(customer_error_code, qr_not_found));
+    }
+
+    const unit = await Unit.findOne({ unitQrCode: qrCode._id });
+
+    if (!unit) {
+      return res
+        .status(httpStatus.OK)
+        .json(ApiResponse.response(customer_error_code, qr_not_available));
+    }
+
+    const workOrders = await WorkOrder.find({
+      workOrderUnitReference: unit._id,
+    });
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(customer_success_code, success_message, {
+        unit: unit,
+        workOrders: workOrders,
+      })
+    );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
