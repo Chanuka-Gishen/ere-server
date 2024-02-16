@@ -33,6 +33,7 @@ import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { unitDetailsUpdateSchema } from "../schemas/unitDetailsUpdateSchema.js";
 import { QRCodeModel } from "../models/dao/qrCodeModel.js";
 import { unitUpdateQrSchema } from "../schemas/unitUpdateQrSchema.js";
+import AirConditionerModel from "../models/dao/airConditionerModel.js";
 
 export const AddCustomerUnit = async (req, res) => {
   try {
@@ -75,6 +76,26 @@ export const AddCustomerUnit = async (req, res) => {
     });
 
     const unit = await newUnit.save();
+
+    // Check if the brand exists
+    let existingBrand = await AirConditionerModel.findOne({
+      brand: unit.unitBrand,
+    });
+
+    if (existingBrand) {
+      // If brand exists, check if model exists
+      if (!existingBrand.models.includes(unit.unitModel)) {
+        existingBrand.models.push(unit.unitModel);
+        await existingBrand.save();
+      }
+    } else {
+      // If brand doesn't exist, create a new document
+      const airConditioner = new AirConditionerModel({
+        brand: unit.unitBrand,
+        models: [unit.unitModel],
+      });
+      await airConditioner.save();
+    }
 
     const sequenceType = unitIsInstalled ? SERVICE_SEQ : INSTALLATION_SEQ;
 
