@@ -14,6 +14,7 @@ import {
   employee_not_found,
   success_message,
   workOrder_assignees_required,
+  workOrder_cannot_update_assignees,
   workOrder_completed,
   workOrder_empty_images,
   workOrder_not_found,
@@ -302,6 +303,14 @@ export const workOrderAssign = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
+    if (workOrder.workOrderStatus === COMPLETED_STATUS) {
+      return res
+        .status(httpStatus.PRECONDITION_FAILED)
+        .json(
+          ApiResponse.error(bad_request_code, workOrder_cannot_update_assignees)
+        );
+    }
+
     if (workOrderAssignedEmployees.length === 0) {
       return res
         .status(httpStatus.NOT_FOUND)
@@ -314,8 +323,8 @@ export const workOrderAssign = async (req, res) => {
       workOrder.workOrderStatus = SCHEDULED_STATUS;
     }
 
-    const employeeIds = workOrderAssignedEmployees.map((employee) => ({
-      employee: employee._id,
+    const employeeIds = workOrderAssignedEmployees.map((emp) => ({
+      employee: new ObjectId(emp._id),
       tip: {
         amount: 0,
       },
@@ -523,7 +532,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
         .sort({ workOrderScheduledDate: 1 });
     } else {
       result = await WorkOrder.find({
-        workOrderAssignedEmployees: new ObjectId(employeeId),
+        "workOrderAssignedEmployees.employee": new ObjectId(employeeId),
         workOrderStatus: SCHEDULED_STATUS,
       })
         .populate("workOrderCustomerId")
