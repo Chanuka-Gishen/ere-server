@@ -523,7 +523,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
         .sort({ workOrderScheduledDate: 1 });
     } else {
       result = await WorkOrder.find({
-        workOrderAssignedEmployees: new ObjectId(employeeId),
+        "workOrderAssignedEmployees.employee": new ObjectId(employeeId),
         workOrderStatus: SCHEDULED_STATUS,
       })
         .populate("workOrderCustomerId")
