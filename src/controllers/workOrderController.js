@@ -17,11 +17,12 @@ import {
   workOrder_cannot_update_assignees,
   workOrder_completed,
   workOrder_empty_images,
+  workOrder_images_missing,
   workOrder_not_found,
   workOrder_not_scheduled,
   workOrder_tip_missing,
 } from "../constants/messageConstants.js";
-import { Image, WorkOrder } from "../models/dao/workOrderModel.js";
+import { ImageModel, WorkOrder } from "../models/dao/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
@@ -40,7 +41,7 @@ import {
 } from "../constants/commonConstants.js";
 import { WorkOrderAssignSchema } from "../schemas/woAssignEmployeeSchema.js";
 import {
-  deleteDriveFileAdmin,
+  deleteDriveFilesAdmin,
   uploadImagesToDrive,
 } from "../services/googleApi.js";
 import Employee from "../models/dao/employeeModel.js";
@@ -481,7 +482,7 @@ export const uploadWorkImages = async (req, res) => {
 
     for (const file of uploadedFiles) {
       images.push(
-        new Image({
+        new ImageModel({
           imageUploadedBy: employee._id,
           imageId: file.id,
           imageFileName: file.fileName,
@@ -553,15 +554,6 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
   }
 };
 
-// Temporary API to delete google drive files
-export const deleteFileApi = async (req, res) => {
-  const { id } = req.params;
-
-  await deleteDriveFileAdmin(id);
-
-  return res.status(httpStatus.OK).json({ message: "Success" });
-};
-
 export const updateWorkOrderEmployeeTips = async (req, res) => {
   try {
     const { id, amount } = req.body;
@@ -611,6 +603,54 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
     });
 
     await workOrder.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Temporary API to delete google drive files
+export const deleteFilesFromDrive = async (req, res) => {
+  try {
+    const { idList, workOrderId } = req.body;
+
+    if (!idList || idList.length === 0) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(workorder_error_code, workOrder_images_missing)
+        );
+    }
+
+    const existingWorkOrder = await WorkOrder.findById(
+      new ObjectId(workOrderId)
+    );
+
+    if (!existingWorkOrder) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    const deleteFileIds = idList.map((file) => file.imageId);
+
+    await deleteDriveFilesAdmin(deleteFileIds);
+
+    const deletedImageIds = idList.map((file) => file._id);
+
+    const newImageList = existingWorkOrder.workOrderImages.filter(
+      (image) => !deletedImageIds.includes(image._id.toString())
+    );
+
+    existingWorkOrder.workOrderImages = newImageList;
+
+    await existingWorkOrder.save();
 
     return res
       .status(httpStatus.OK)

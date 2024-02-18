@@ -102,4 +102,4 @@ const workOrderSchema = new Schema({
 
 // Creating models
 export const WorkOrder = mongoose.model("WorkOrder", workOrderSchema);
-export const Image = mongoose.model("Image", imageSchema);
+export const ImageModel = mongoose.model("Image", imageSchema);

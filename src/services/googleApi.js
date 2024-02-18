@@ -12,7 +12,7 @@ import { generateQrCodes } from "./qrServices.js";
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: process.env.GOOGLE_CREDENTIALS_FILE_PATH,
+  keyFile: "api_credentials.json",
   scopes: SCOPES,
 });
 
@@ -103,12 +103,27 @@ const generatePublicUrl = async (drive, fileId) => {
   }
 };
 
+// Handle delete a file from drive
 export const deleteDriveFileAdmin = async (id) => {
   const drive = google.drive({ version: "v3", auth });
 
   await drive.files.delete({
     fileId: id,
   });
+
+  return;
+};
+
+// Handle delete files from drive
+export const deleteDriveFilesAdmin = async (idList) => {
+  const drive = google.drive({ version: "v3", auth });
+
+  // Loop through each file ID and delete the corresponding file
+  await Promise.all(
+    idList.map(async (id) => {
+      await drive.files.delete({ fileId: id });
+    })
+  );
 
   return;
 };
