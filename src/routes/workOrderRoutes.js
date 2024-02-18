@@ -4,7 +4,7 @@ import { checkAdmin } from "../middleware/permission.js";
 import {
   GetWorkOrdersByUnit,
   createRepairJob,
-  deleteFileApi,
+  deleteFilesFromDrive,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   updateWorkOrderDetails,
@@ -41,7 +41,11 @@ workOrderRoutes.post(
   [verifyToken, upload.array("files")],
   uploadWorkImages
 );
-workOrderRoutes.delete("/delete-file-api/:id", [verifyToken], deleteFileApi);
+workOrderRoutes.delete(
+  "/delete-files",
+  [verifyToken, checkAdmin],
+  deleteFilesFromDrive
+);
 workOrderRoutes.post(
   "/emp-jobs",
   [verifyToken],
