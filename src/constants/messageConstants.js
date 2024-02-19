@@ -30,6 +30,7 @@ export const workOrder_not_scheduled = "Work order not scheduled";
 export const workOrder_tip_missing = "WorkOrder ID / tip amount missing";
 export const workOrder_cannot_update_assignees = "Cannot update assignees";
 export const workOrder_images_missing = "Image Ids not found";
+export const workOrder_chargers_updated = "Chargers updated";
 
 export const qr_code_name_missing = "QR code namer required";
 export const qr_not_found = "QR code not found";

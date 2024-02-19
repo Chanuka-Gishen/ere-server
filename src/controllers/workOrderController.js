@@ -15,6 +15,7 @@ import {
   success_message,
   workOrder_assignees_required,
   workOrder_cannot_update_assignees,
+  workOrder_chargers_updated,
   workOrder_completed,
   workOrder_empty_images,
   workOrder_images_missing,
@@ -607,6 +608,56 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const addUpdateWorkOrderChargers = async (req, res) => {
+  try {
+    const id = req.body.id;
+    const data = req.body.chargers;
+
+    const workOrder = await WorkOrder.findById(new ObjectId(id));
+
+    if (!workOrder) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    const { items, labourCharges, transportCharges, otherCharges } = data;
+
+    // Calculate the sum of item costs
+    const itemsTotal = items.reduce(
+      (total, item) => total + (item.itemQty || 0) * (item.itemCost || 0),
+      0
+    );
+
+    // Calculate the total of additional charges
+    const additionalChargesTotal =
+      (labourCharges?.amount || 0) +
+      (transportCharges?.amount || 0) +
+      (otherCharges?.amount || 0);
+
+    // Calculate the grand total
+    const grandTotal = itemsTotal + additionalChargesTotal;
+
+    workOrder.workOrderChargers = {
+      ...data,
+      grandTotal: grandTotal,
+    };
+
+    await workOrder.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(workorder_success_code, workOrder_chargers_updated)
+      );
   } catch (error) {
     console.log(error);
     return res

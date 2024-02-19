@@ -3,6 +3,7 @@ import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
 import {
   GetWorkOrdersByUnit,
+  addUpdateWorkOrderChargers,
   createRepairJob,
   deleteFilesFromDrive,
   getDetailsOfWorkOrderWithPopulated,
@@ -55,6 +56,11 @@ workOrderRoutes.put(
   "/tips",
   [verifyToken, checkAdmin],
   updateWorkOrderEmployeeTips
+);
+workOrderRoutes.post(
+  "/chargers",
+  [verifyToken, checkAdmin],
+  addUpdateWorkOrderChargers
 );
 
 export default workOrderRoutes;
