@@ -2,8 +2,9 @@ import QRCode from "qrcode";
 import fs from "fs";
 import path from "path";
 import { createCanvas, loadImage } from "canvas";
+import { getTempFolderPath } from "./commonServices.js";
 
-const qrFolderPath = process.env.QR_TMP_FOLDER_PATH;
+const qrFolderPath = getTempFolderPath();
 
 export const generateQrCodes = async (fileName, url) => {
   try {
