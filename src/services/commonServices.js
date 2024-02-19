@@ -99,3 +99,21 @@ export const divideSalaryAmongEmployees = (
     perHelperAmount: perHelperAmount.toFixed(2), // Rounded to 2 decimal places
   };
 };
+
+export const getGoogleKeyFilePath = () => {
+  const isLocalhost = process.env.NODE_ENV === "development"; // Assuming you set NODE_ENV appropriately
+  if (!isLocalhost) {
+    return "api_credentials.json";
+  } else {
+    return "/home/ec2-user/server/ere-server/api_credentials.json";
+  }
+};
+
+export const getTempFolderPath = () => {
+  const isLocalhost = process.env.NODE_ENV === "development"; // Assuming you set NODE_ENV appropriately
+  if (!isLocalhost) {
+    return "tmp";
+  } else {
+    return "/home/ec2-user/server/ere-server/tmp";
+  }
+};
