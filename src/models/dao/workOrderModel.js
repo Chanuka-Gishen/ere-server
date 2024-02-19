@@ -84,7 +84,7 @@ const chargersSchema = new Schema({
       default: 0,
     },
   },
-  otherChargers: {
+  otherCharges: {
     description: {
       type: String,
       default: "",
