@@ -43,6 +43,63 @@ const imageSchema = new Schema({
   },
 });
 
+const chargersSchema = new Schema({
+  items: [
+    {
+      item: {
+        default: "",
+        type: String,
+      },
+      itemDescription: {
+        default: "",
+        type: String,
+      },
+      itemQty: {
+        type: Number,
+        default: 1,
+      },
+      itemCost: {
+        type: Number,
+        default: 0,
+      },
+    },
+  ],
+  labourCharges: {
+    description: {
+      type: String,
+      default: "",
+    },
+    amount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  transportCharges: {
+    description: {
+      type: String,
+      default: "",
+    },
+    amount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  otherChargers: {
+    description: {
+      type: String,
+      default: "",
+    },
+    amount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  grandTotal: {
+    type: Number,
+    default: 0,
+  },
+});
+
 // Work Order Schema
 const workOrderSchema = new Schema({
   workOrderCode: {
@@ -93,6 +150,10 @@ const workOrderSchema = new Schema({
   workOrderEmployeeTip: {
     type: Number,
     default: 0,
+  },
+  workOrderChargers: {
+    type: chargersSchema,
+    default: null,
   },
   workOrderCreatedAt: {
     type: Date,
