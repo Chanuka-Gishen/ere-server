@@ -13,7 +13,10 @@ import {
   deleteFoldersAndFiles,
   uploadQrCodes,
 } from "./src/services/googleApi.js";
-import { createBulkQrCodes } from "./src/controllers/qrController.js";
+import {
+  addConstant,
+  createBulkQrCodes,
+} from "./src/controllers/qrController.js";
 
 dotenv.config();
 const app = express();
@@ -59,8 +62,6 @@ db.once("connected", () => {
   //createDefaultAdmin();
 
   //addSequence();
-
-  //createBulkQrCodes();
 
   //deleteFoldersAndFiles();
 

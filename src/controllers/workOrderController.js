@@ -666,7 +666,38 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
   }
 };
 
-// Temporary API to delete google drive files
+// Get the today's scheduled work count
+export const getTodaysWorkCount = async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const countOfTodayWorkOrders = await WorkOrder.countDocuments({
+      workOrderScheduledDate: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    });
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(
+          workorder_success_code,
+          success_message,
+          countOfTodayWorkOrders
+        )
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Delete files from google drive
 export const deleteFilesFromDrive = async (req, res) => {
   try {
     const { idList, workOrderId } = req.body;
