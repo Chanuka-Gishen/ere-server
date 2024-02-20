@@ -8,6 +8,7 @@ import {
   deleteFilesFromDrive,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
+  getTodaysWorkCount,
   updateWorkOrderDetails,
   updateWorkOrderEmployeeTips,
   uploadWorkImages,
@@ -62,5 +63,6 @@ workOrderRoutes.post(
   [verifyToken, checkAdmin],
   addUpdateWorkOrderChargers
 );
+workOrderRoutes.post("/today-count", getTodaysWorkCount);
 
 export default workOrderRoutes;

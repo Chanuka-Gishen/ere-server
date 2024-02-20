@@ -36,3 +36,5 @@ export const qr_code_name_missing = "QR code namer required";
 export const qr_not_found = "QR code not found";
 export const qr_not_available = "QR code not available";
 export const qr_removed = "QR code unlinked";
+export const qr_cannot_create_now = "Cannot generate QR codes now";
+export const qr_generated = "QR codes generated";
