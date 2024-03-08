@@ -27,6 +27,7 @@ import { ImageModel, WorkOrder } from "../models/dao/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
+  generateInvoiceNumber,
   generateWorkOrderNumber,
   getSequenceType,
 } from "../services/commonServices.js";
@@ -34,6 +35,7 @@ import Customer from "../models/dao/customerModel.js";
 import {
   COMPLETED_STATUS,
   CREATED_STATUS,
+  INVOICE_SEQUENCE,
   REPAIR_SEQ,
   SCHEDULED_STATUS,
   SERVICE_SEQ,
@@ -50,6 +52,7 @@ import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 
+// Create New Repair Job
 export const createRepairJob = async (req, res) => {
   try {
     const { error, value } = WorkOrderAddSchema.validate(req.body);
@@ -104,6 +107,8 @@ export const createRepairJob = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+// Get Work Orders By Customer Unit
 
 export const GetWorkOrdersByUnit = async (req, res) => {
   try {
@@ -169,6 +174,8 @@ export const GetWorkOrdersByUnit = async (req, res) => {
   }
 };
 
+// Get Work Order Details - Populated
+
 export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
   try {
     const { id } = req.params;
@@ -211,6 +218,8 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
   }
 };
 
+// Update Work Order Details
+
 export const updateWorkOrderDetails = async (req, res) => {
   try {
     const { error, value } = WorkOrderUpdateSchema.validate(req.body);
@@ -221,13 +230,7 @@ export const updateWorkOrderDetails = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, error.message));
     }
 
-    const {
-      _id,
-      workOrderType,
-      workOrderScheduledDate,
-      workOrderInvoiceNumber,
-      workOrderFrom,
-    } = value;
+    const { _id, workOrderType, workOrderScheduledDate, workOrderFrom } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(_id));
 
@@ -264,13 +267,6 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrder.workOrderType = workOrderType;
     }
 
-    if (
-      workOrder.workOrderStatus !== CREATED_STATUS &&
-      workOrderInvoiceNumber
-    ) {
-      workOrder.workOrderInvoiceNumber = workOrderInvoiceNumber;
-    }
-
     workOrder.workOrderScheduledDate = workOrderScheduledDate;
     workOrder.workOrderFrom = workOrderFrom;
 
@@ -286,6 +282,8 @@ export const updateWorkOrderDetails = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+// Assign Employees To Work Order
 
 export const workOrderAssign = async (req, res) => {
   try {
@@ -350,6 +348,8 @@ export const workOrderAssign = async (req, res) => {
   }
 };
 
+// Change Work Order Status To COMPLETED
+
 export const workOrderCompleteState = async (req, res) => {
   try {
     const { id } = req.params;
@@ -364,7 +364,7 @@ export const workOrderCompleteState = async (req, res) => {
 
     if (workOrder.workOrderStatus === CREATED_STATUS) {
       return res
-        .status(httpStatus.NOT_FOUND)
+        .status(httpStatus.BAD_REQUEST)
         .json(ApiResponse.error(bad_request_code, workOrder_not_scheduled));
     }
 
@@ -426,6 +426,8 @@ export const workOrderCompleteState = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+// Upload Images To Work Order
 
 export const uploadWorkImages = async (req, res) => {
   try {
@@ -513,6 +515,8 @@ export const uploadWorkImages = async (req, res) => {
   }
 };
 
+// Get Work Order Overview To Users
+
 export const getEmployeeAssignedWorkOverview = async (req, res) => {
   try {
     const employeeId = req.user.id;
@@ -556,6 +560,8 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+// Update Work Order Employee Tips
 
 export const updateWorkOrderEmployeeTips = async (req, res) => {
   try {
@@ -618,6 +624,8 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
   }
 };
 
+// Add / Update Work Order Invoice
+
 export const addUpdateWorkOrderChargers = async (req, res) => {
   try {
     const id = req.body.id;
@@ -629,6 +637,13 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    if (!workOrder.workOrderInvoiceNumber) {
+      await updateSequenceValue(INVOICE_SEQUENCE);
+      const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+
+      workOrder.workOrderInvoiceNumber = generateInvoiceNumber(sequenceValue);
     }
 
     const { items, labourCharges, transportCharges, otherCharges } = data;
@@ -669,6 +684,7 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
 };
 
 // Get the today's scheduled work count
+
 export const getTodaysWorkCount = async (req, res) => {
   try {
     const today = new Date();

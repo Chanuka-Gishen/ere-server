@@ -19,6 +19,5 @@ export const WorkOrderUpdateSchema = Joi.object({
     .valid(CREATED_STATUS, SCHEDULED_STATUS, COMPLETED_STATUS)
     .required(),
   workOrderScheduledDate: Joi.date().required(),
-  workOrderInvoiceNumber: Joi.string().allow(null),
   workOrderFrom: Joi.string().valid(CMP_ERE, CMP_SINGER).required(),
 });

@@ -1,5 +1,6 @@
 import {
   INSTALLATION_SEQ,
+  INVOICE_SEQUENCE,
   QR_SEQUENCE,
   REPAIR_SEQ,
   SERVICE_SEQ,
@@ -9,7 +10,13 @@ import Sequence from "../models/dao/sequenceModel.js";
 export const addSequence = async () => {
   const existingSequences = await Sequence.find();
 
-  const list = [INSTALLATION_SEQ, SERVICE_SEQ, REPAIR_SEQ, QR_SEQUENCE];
+  const list = [
+    INSTALLATION_SEQ,
+    SERVICE_SEQ,
+    REPAIR_SEQ,
+    QR_SEQUENCE,
+    INVOICE_SEQUENCE,
+  ];
 
   for (const type of list) {
     const existingSequence = existingSequences.find(
