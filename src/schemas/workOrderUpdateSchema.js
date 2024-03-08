@@ -1,5 +1,7 @@
 import Joi from "joi";
 import {
+  CMP_ERE,
+  CMP_SINGER,
   COMPLETED_STATUS,
   CREATED_STATUS,
   SCHEDULED_STATUS,
@@ -18,4 +20,5 @@ export const WorkOrderUpdateSchema = Joi.object({
     .required(),
   workOrderScheduledDate: Joi.date().required(),
   workOrderInvoiceNumber: Joi.string().allow(null),
+  workOrderFrom: Joi.string().valid(CMP_ERE, CMP_SINGER).required(),
 });

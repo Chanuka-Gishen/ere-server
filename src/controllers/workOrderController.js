@@ -226,6 +226,7 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrderType,
       workOrderScheduledDate,
       workOrderInvoiceNumber,
+      workOrderFrom,
     } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(_id));
@@ -271,6 +272,7 @@ export const updateWorkOrderDetails = async (req, res) => {
     }
 
     workOrder.workOrderScheduledDate = workOrderScheduledDate;
+    workOrder.workOrderFrom = workOrderFrom;
 
     await workOrder.save();
 
@@ -382,9 +384,9 @@ export const workOrderCompleteState = async (req, res) => {
     }
 
     unit.unitLastMaintenanceDate = new Date();
-    // After 3 months the next service
+    // After 4 months the next service
     unit.unitNextMaintenanceDate = new Date().setMonth(
-      new Date().getMonth() + 3
+      new Date().getMonth() + 4
     );
 
     const savedUnit = await unit.save();
