@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import {
+  CMP_ERE,
+  CMP_SINGER,
   COMPLETED_STATUS,
   CREATED_STATUS,
   SCHEDULED_STATUS,
@@ -106,6 +108,11 @@ const workOrderSchema = new Schema({
     type: String,
     unique: true,
     required: true,
+  },
+  workOrderFrom: {
+    type: String,
+    enum: [CMP_ERE, CMP_SINGER],
+    default: CMP_ERE,
   },
   workOrderCustomerId: {
     type: mongoose.Schema.Types.ObjectId,

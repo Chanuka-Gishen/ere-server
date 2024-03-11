@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import {
   INSTALLATION_SEQ,
+  INVOICE_SEQUENCE,
   QR_SEQUENCE,
   REPAIR_SEQ,
   SERVICE_SEQ,
@@ -12,7 +13,13 @@ const sequenceSchema = new Schema({
   sequenceType: {
     type: String,
     required: true,
-    enum: [INSTALLATION_SEQ, SERVICE_SEQ, REPAIR_SEQ, QR_SEQUENCE],
+    enum: [
+      INSTALLATION_SEQ,
+      SERVICE_SEQ,
+      REPAIR_SEQ,
+      QR_SEQUENCE,
+      INVOICE_SEQUENCE,
+    ],
     unique: true,
   },
   sequenceValue: {

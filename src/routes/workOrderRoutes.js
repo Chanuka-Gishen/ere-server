@@ -6,6 +6,7 @@ import {
   addUpdateWorkOrderChargers,
   createRepairJob,
   deleteFilesFromDrive,
+  downloadInvoice,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   getTodaysWorkCount,
@@ -63,6 +64,7 @@ workOrderRoutes.post(
   [verifyToken, checkAdmin],
   addUpdateWorkOrderChargers
 );
+workOrderRoutes.get("/download-invoice/:invoiceNo", downloadInvoice);
 workOrderRoutes.post("/today-count", getTodaysWorkCount);
 
 export default workOrderRoutes;

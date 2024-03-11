@@ -13,5 +13,9 @@ export const INSTALLATION_SEQ = "installation_sequence";
 export const SERVICE_SEQ = "service_sequence";
 export const REPAIR_SEQ = "repair_sequence";
 export const QR_SEQUENCE = "qr_sequence";
+export const INVOICE_SEQUENCE = "invoice_sequence";
 
 export const CONST_CODE_QR = "QR";
+
+export const CMP_ERE = "ERE";
+export const CMP_SINGER = "Singer";

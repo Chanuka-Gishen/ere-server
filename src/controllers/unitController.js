@@ -357,7 +357,9 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
         .json(ApiResponse.response(customer_error_code, qr_not_found));
     }
 
-    const unit = await Unit.findOne({ unitQrCode: qrCode._id });
+    const unit = await Unit.findOne({ unitQrCode: qrCode._id }).populate(
+      "unitCustomerId"
+    );
 
     if (!unit) {
       return res

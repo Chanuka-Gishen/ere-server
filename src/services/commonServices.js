@@ -25,6 +25,19 @@ export const generateWorkOrderNumber = (type, sequenceValue) => {
   return workOrderNumber;
 };
 
+export const generateInvoiceNumber = (sequenceValue) => {
+  // Set the desired length of the sequence number (e.g., 4 digits for "S0001")
+  const sequenceLength = 4;
+
+  // Convert the sequenceValue to a string and pad with leading zeros
+  const stringValue = sequenceValue.toString();
+  const formattedSequence = stringValue.padStart(sequenceLength, "0");
+
+  const invoiceNumber = `INV${formattedSequence}`;
+
+  return invoiceNumber;
+};
+
 export const generateQrCodeFileName = (sequenceValue) => {
   const sequenceLength = 4;
 
@@ -116,4 +129,15 @@ export const getTempFolderPath = () => {
   } else {
     return "/home/ec2-user/server/ere-server/tmp";
   }
+};
+
+export const formatCurrency = (amount) => {
+  const formattedAmount = amount
+    .toLocaleString("en-IN", {
+      style: "currency",
+      currency: "LKR",
+      minimumFractionDigits: 2,
+    })
+    .replace("LKR", "Rs.");
+  return formattedAmount;
 };
