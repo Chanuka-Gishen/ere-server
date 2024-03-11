@@ -19,6 +19,7 @@ import {
   workOrder_completed,
   workOrder_empty_images,
   workOrder_images_missing,
+  workOrder_invoice_not_created,
   workOrder_not_found,
   workOrder_not_scheduled,
   workOrder_tip_missing,
@@ -51,6 +52,8 @@ import Employee from "../models/dao/employeeModel.js";
 import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
+import { generateInvoicePDF } from "../services/pdfServices.js";
+import PDFDocument from "pdfkit";
 
 // Create New Repair Job
 export const createRepairJob = async (req, res) => {
@@ -675,6 +678,55 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
       .json(
         ApiResponse.response(workorder_success_code, workOrder_chargers_updated)
       );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get invoice download file
+export const downloadInvoice = async (req, res) => {
+  try {
+    const { invoiceNo } = req.params;
+
+    const workOrder = await WorkOrder.findOne({
+      workOrderInvoiceNumber: invoiceNo,
+    })
+      .populate("workOrderCustomerId")
+      .populate("workOrderUnitReference");
+
+    if (!workOrder) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(
+          ApiResponse.error(workorder_error_code, workOrder_invoice_not_created)
+        );
+    }
+
+    // Create a new PDF document
+    const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=${workOrder.workOrderInvoiceNumber}.pdf`
+    );
+
+    // Stream the PDF buffer to the response
+    doc.pipe(res);
+
+    generateInvoicePDF(
+      doc,
+      workOrder.workOrderCustomerId,
+      workOrder.workOrderUnitReference,
+      workOrder,
+      workOrder.workOrderChargers
+    );
+
+    doc.end();
   } catch (error) {
     console.log(error);
     return res
