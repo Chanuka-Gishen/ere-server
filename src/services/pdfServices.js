@@ -1,9 +1,11 @@
-import { formatCurrency } from "./commonServices.js";
+import { formatCurrency, getExactFilePath } from "./commonServices.js";
 
 // Function to create PDF
 export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
+  const logoPath = getExactFilePath("assets/ere-logo.jpg");
+
   // Logo and company information
-  doc.image("./assets/ere-logo.jpg", 40, 20, { width: 200 }); // Adjust position and size as needed
+  doc.image(logoPath, 40, 20, { width: 200 }); // Adjust position and size as needed
   doc
     .font("Helvetica-Bold")
     .fontSize(20)
@@ -84,7 +86,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .font("Helvetica-Bold")
     .fontSize(12)
     .text("Item", 50, 320)
-    .text("Description", 150, 320)
+    //.text("Description", 150, 320)
     .text("Qty", 280, 320)
     .text("Unit Price", 350, 320)
     .text("Total Price", 450, 320, { align: "right" });
@@ -97,18 +99,29 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc
       .font("Helvetica")
       .fontSize(12)
-      .text(item.item, 50, y)
-      .text(item.itemDescription, 150, y)
-      .text(item.itemQty, 280, y)
-      .text(formatCurrency(item.itemCost), 350, y)
-      .text(formatCurrency(item.itemQty * item.itemCost), 450, y, {
+      .text(item.item, 50, y, { width: 200 })
+      //.text(item.itemDescription, 150, y)
+      .text(item.itemQty, 280, y, { width: 100 })
+      .text(formatCurrency(item.itemGrossPrice), 350, y, { width: 100 })
+      .text(formatCurrency(item.itemQty * item.itemGrossPrice), 450, y, {
         align: "right",
+        width: 100,
       });
-    y += 20;
+    y += 30;
     doc.moveTo(50, y).lineTo(550, y).stroke();
     y += 20;
   });
 
+  y += 20;
+
+  // Service Chargers
+  doc.font("Helvetica-Bold").fontSize(12).text("Service Chargers", 250, y);
+  doc
+    .font("Helvetica")
+    .fontSize(12)
+    .text(formatCurrency(invoice.serviceCharges.amount), 450, y, {
+      align: "right",
+    });
   y += 20;
 
   // Labour Chargers

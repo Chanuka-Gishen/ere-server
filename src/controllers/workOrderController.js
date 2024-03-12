@@ -649,25 +649,46 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
       workOrder.workOrderInvoiceNumber = generateInvoiceNumber(sequenceValue);
     }
 
-    const { items, labourCharges, transportCharges, otherCharges } = data;
+    const {
+      items,
+      serviceCharges,
+      labourCharges,
+      transportCharges,
+      otherCharges,
+    } = data;
 
     // Calculate the sum of item costs
     const itemsTotal = items.reduce(
-      (total, item) => total + (item.itemQty || 0) * (item.itemCost || 0),
+      (total, item) => total + (item.itemQty || 0) * (item.itemGrossPrice || 0),
+      0
+    );
+
+    const itemsNetTotal = items.reduce(
+      (total, item) => total + (item.itemQty || 0) * (item.itemNetPrice || 0),
       0
     );
 
     // Calculate the total of additional charges
     const additionalChargesTotal =
+      (serviceCharges?.amount || 0) +
       (labourCharges?.amount || 0) +
       (transportCharges?.amount || 0) +
       (otherCharges?.amount || 0);
 
+    // Calculate the total of additional chargers net amount
+    const additionalChargesNetTotal =
+      (serviceCharges?.netAmount || 0) +
+      (labourCharges?.netAmount || 0) +
+      (transportCharges?.netAmount || 0) +
+      (otherCharges?.netAmount || 0);
+
     // Calculate the grand total
     const grandTotal = itemsTotal + additionalChargesTotal;
+    const grandNetTotal = itemsNetTotal + additionalChargesNetTotal;
 
     workOrder.workOrderChargers = {
       ...data,
+      grandNetTotal: grandNetTotal,
       grandTotal: grandTotal,
     };
 
