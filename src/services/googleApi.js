@@ -14,8 +14,10 @@ import { generateQrCodes } from "./qrServices.js";
 
 const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
+const keyFilePath = getGoogleKeyFilePath();
+
 const auth = new google.auth.GoogleAuth({
-  keyFile: getGoogleKeyFilePath(),
+  keyFile: keyFilePath,
   scopes: SCOPES,
 });
 

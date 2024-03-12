@@ -60,16 +60,38 @@ const chargersSchema = new Schema({
         type: Number,
         default: 1,
       },
-      itemCost: {
+      itemNetPrice: {
+        type: Number,
+        default: 0,
+      },
+      itemGrossPrice: {
         type: Number,
         default: 0,
       },
     },
   ],
+  serviceCharges: {
+    description: {
+      type: String,
+      default: "",
+    },
+    netAmount: {
+      type: Number,
+      default: 0,
+    },
+    amount: {
+      type: Number,
+      default: 0,
+    },
+  },
   labourCharges: {
     description: {
       type: String,
       default: "",
+    },
+    netAmount: {
+      type: Number,
+      default: 0,
     },
     amount: {
       type: Number,
@@ -81,6 +103,10 @@ const chargersSchema = new Schema({
       type: String,
       default: "",
     },
+    netAmount: {
+      type: Number,
+      default: 0,
+    },
     amount: {
       type: Number,
       default: 0,
@@ -91,10 +117,18 @@ const chargersSchema = new Schema({
       type: String,
       default: "",
     },
+    netAmount: {
+      type: Number,
+      default: 0,
+    },
     amount: {
       type: Number,
       default: 0,
     },
+  },
+  grandNetTotal: {
+    type: Number,
+    default: 0,
   },
   grandTotal: {
     type: Number,
