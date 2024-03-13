@@ -13,6 +13,8 @@ import Customer from "../models/dao/customerModel.js";
 import {
   customer_not_found,
   customer_unit_added,
+  customer_unit_cannot_delete,
+  customer_unit_deleted,
   customer_unit_not_found,
   customer_unit_updated,
   qr_not_available,
@@ -35,6 +37,7 @@ import { QRCodeModel } from "../models/dao/qrCodeModel.js";
 import { unitUpdateQrSchema } from "../schemas/unitUpdateQrSchema.js";
 import AirConditionerModel from "../models/dao/airConditionerModel.js";
 
+// Add customer unit
 export const AddCustomerUnit = async (req, res) => {
   try {
     const { error, value } = unitAddSchema.validate(req.body);
@@ -53,7 +56,6 @@ export const AddCustomerUnit = async (req, res) => {
       unitInstalledDate,
       unitNextMaintenanceDate,
       unitStatus,
-      unitIsInstalled,
     } = value;
 
     const customer = await Customer.findById(new ObjectId(customerId));
@@ -97,24 +99,6 @@ export const AddCustomerUnit = async (req, res) => {
       await airConditioner.save();
     }
 
-    const sequenceType = unitIsInstalled ? SERVICE_SEQ : INSTALLATION_SEQ;
-
-    await updateSequenceValue(sequenceType);
-
-    const sequenceValue = await getSequenceValue(sequenceType);
-
-    const workCorderCode = generateWorkOrderNumber(sequenceType, sequenceValue);
-
-    const newWorkOrder = new WorkOrder({
-      workOrderCode: workCorderCode,
-      workOrderType: unitIsInstalled ? WORK_ORD_SERVICE : WORK_ORD_INSTALLATION,
-      workOrderCustomerId: customer._id,
-      workOrderUnitReference: unit._id,
-      workOrderScheduledDate: unit.unitNextMaintenanceDate,
-    });
-
-    await newWorkOrder.save();
-
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, customer_unit_added));
@@ -126,6 +110,7 @@ export const AddCustomerUnit = async (req, res) => {
   }
 };
 
+// Update customer unit
 export const updateCustomerUnit = async (req, res) => {
   try {
     const { error, value } = unitUpdateSchema.validate(req.body);
@@ -157,25 +142,6 @@ export const updateCustomerUnit = async (req, res) => {
 
     unit.unitBrand = unitBrand;
     unit.unitModel = unitModel;
-
-    if (
-      unit.unitSerialNo != unitSerialNo ||
-      unit.unitNextMaintenanceDate != unitNextMaintenanceDate
-    ) {
-      const workOrders = await WorkOrder.aggregate([
-        { $match: { workOrderUnitReference: new ObjectId(unit._id) } },
-        { $sort: { workOrderScheduledDate: -1 } },
-        { $limit: 1 },
-      ]);
-
-      const latestWorkOrder = workOrders[0];
-
-      await WorkOrder.updateOne(
-        { _id: latestWorkOrder._id },
-        { $set: { workOrderScheduledDate: unitNextMaintenanceDate } }
-      );
-    }
-
     unit.unitSerialNo = unitSerialNo;
     unit.unitInstalledDate = unitInstalledDate;
     unit.unitLastMaintenanceDate = unitLastMaintenanceDate;
@@ -195,6 +161,45 @@ export const updateCustomerUnit = async (req, res) => {
   }
 };
 
+// Delete customer unit
+export const deleteUnit = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const unit = await Unit.findById(new ObjectId(id));
+
+    if (!unit) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(customer_error_code, customer_unit_not_found));
+    }
+
+    const workOrders = await WorkOrder.find({
+      workOrderUnitReference: new ObjectId(id),
+    });
+
+    if (workOrders.length > 0) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(customer_error_code, customer_unit_cannot_delete)
+        );
+    }
+
+    await Unit.deleteOne(unit);
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(customer_success_code, customer_unit_deleted));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Update unit serial number
 export const updateUnitSerialNumber = async (req, res) => {
   try {
     const { error, value } = unitDetailsUpdateSchema.validate(req.body);
