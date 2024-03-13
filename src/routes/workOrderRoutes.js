@@ -30,7 +30,11 @@ workOrderRoutes.get(
 workOrderRoutes.post("/add-job", [verifyToken, checkAdmin], createJob);
 workOrderRoutes.get("/:id", [verifyToken], getDetailsOfWorkOrderWithPopulated);
 workOrderRoutes.put("/", [verifyToken, checkAdmin], updateWorkOrderDetails);
-workOrderRoutes.delete("/:id", [verifyToken, checkAdmin], deleteWorkOrder);
+workOrderRoutes.delete(
+  "/delete-job/:id",
+  [verifyToken, checkAdmin],
+  deleteWorkOrder
+);
 workOrderRoutes.post(
   "/add-employees",
   [verifyToken, checkAdmin],

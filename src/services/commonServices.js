@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { Readable } from "stream";
 import {
   INSTALLATION_SEQ,
@@ -7,6 +8,7 @@ import {
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
 } from "../constants/commonConstants.js";
+dotenv.config();
 
 export const generateWorkOrderNumber = (type, sequenceValue) => {
   // Set the desired length of the sequence number (e.g., 4 digits for "S0001")
