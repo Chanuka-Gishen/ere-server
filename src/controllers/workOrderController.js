@@ -17,6 +17,7 @@ import {
   workOrder_cannot_update_assignees,
   workOrder_chargers_updated,
   workOrder_completed,
+  workOrder_deleted,
   workOrder_empty_images,
   workOrder_images_missing,
   workOrder_invoice_not_created,
@@ -41,6 +42,7 @@ import {
   SCHEDULED_STATUS,
   SERVICE_SEQ,
   WORK_ORD_INSTALLATION,
+  WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
 } from "../constants/commonConstants.js";
 import { WorkOrderAssignSchema } from "../schemas/woAssignEmployeeSchema.js";
@@ -56,7 +58,7 @@ import { generateInvoicePDF } from "../services/pdfServices.js";
 import PDFDocument from "pdfkit";
 
 // Create New Repair Job
-export const createRepairJob = async (req, res) => {
+export const createJob = async (req, res) => {
   try {
     const { error, value } = WorkOrderAddSchema.validate(req.body);
 
@@ -84,11 +86,13 @@ export const createRepairJob = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, customer_not_found));
     }
 
-    await updateSequenceValue(REPAIR_SEQ);
+    const sequenceType = getSequenceType(workOrderType);
 
-    const sequenceValue = await getSequenceValue(REPAIR_SEQ);
+    await updateSequenceValue(sequenceType);
 
-    const code = generateWorkOrderNumber(REPAIR_SEQ, sequenceValue);
+    const sequenceValue = await getSequenceValue(sequenceType);
+
+    const code = generateWorkOrderNumber(sequenceType, sequenceValue);
 
     const newJob = new WorkOrder({
       workOrderType: workOrderType,
@@ -111,8 +115,182 @@ export const createRepairJob = async (req, res) => {
   }
 };
 
-// Get Work Orders By Customer Unit
+// Update Work Order Details
+export const updateWorkOrderDetails = async (req, res) => {
+  try {
+    const { error, value } = WorkOrderUpdateSchema.validate(req.body);
 
+    if (error) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, error.message));
+    }
+
+    const { _id, workOrderType, workOrderScheduledDate, workOrderFrom } = value;
+
+    const workOrder = await WorkOrder.findById(new ObjectId(_id));
+
+    if (!workOrder) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, workOrder_not_found));
+    }
+
+    if (workOrder.workOrderScheduledDate != workOrderScheduledDate) {
+      const unit = await Unit.findById(
+        new ObjectId(workOrder.workOrderUnitReference)
+      );
+
+      if (workOrder.workOrderType === WORK_ORD_SERVICE) {
+        unit.unitNextMaintenanceDate = workOrderScheduledDate;
+        await unit.save();
+      }
+    }
+
+    if (
+      workOrder.workOrderStatus === CREATED_STATUS &&
+      workOrder.workOrderType != workOrderType
+    ) {
+      await updateSequenceValue(getSequenceType(workOrderType));
+
+      const sequenceValue = await getSequenceValue(
+        getSequenceType(workOrderType)
+      );
+
+      workOrder.workOrderCode = generateWorkOrderNumber(
+        getSequenceType(workOrderType),
+        sequenceValue
+      );
+
+      workOrder.workOrderType = workOrderType;
+    }
+
+    workOrder.workOrderScheduledDate = workOrderScheduledDate;
+    workOrder.workOrderFrom = workOrderFrom;
+
+    await workOrder.save();
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Delete Work Order (if not COMPLETED)
+export const deleteWorkOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const job = await WorkOrder.findById(new ObjectId(id));
+
+    if (!job) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, workOrder_not_found));
+    }
+
+    const images = job.workOrderImages;
+
+    if (images.length > 0) {
+      const deleteFileIds = images.map((file) => file.imageId);
+
+      await deleteDriveFilesAdmin(deleteFileIds);
+    }
+
+    await WorkOrder.deleteOne(job);
+
+    const unit = await Unit.findById(new ObjectId(job.workOrderUnitReference));
+
+    const workOrders = await WorkOrder.find({
+      workOrderUnitReference: new ObjectId(job.workOrderUnitReference),
+    });
+
+    if (workOrders.length === 0) {
+      unit.unitLastMaintenanceDate = null;
+      unit.unitNextMaintenanceDate = null;
+
+      await unit.save();
+    }
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(workorder_success_code, workOrder_deleted));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Change Work Order Status To COMPLETED
+export const workOrderCompleteState = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const workOrder = await WorkOrder.findById(new ObjectId(id));
+
+    if (!workOrder) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, workOrder_not_found));
+    }
+
+    if (workOrder.workOrderStatus === CREATED_STATUS) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, workOrder_not_scheduled));
+    }
+
+    workOrder.workOrderStatus = COMPLETED_STATUS;
+    workOrder.workOrderCompletedDate = new Date();
+
+    const savedWorkOrder = await workOrder.save();
+
+    if (savedWorkOrder.workOrderType != WORK_ORD_REPAIR) {
+      const unit = await Unit.findById(
+        new ObjectId(savedWorkOrder.workOrderUnitReference)
+      );
+
+      if (!unit) {
+        return res
+          .status(httpStatus.NOT_FOUND)
+          .json(ApiResponse.error(bad_request_code, customer_unit_not_found));
+      }
+
+      unit.unitLastMaintenanceDate =
+        savedWorkOrder.workOrderType === WORK_ORD_SERVICE
+          ? savedWorkOrder.workOrderCompletedDate
+          : null;
+      // After 4 months the next service
+      unit.unitNextMaintenanceDate = new Date().setMonth(
+        new Date().getMonth() + 4
+      );
+
+      if (savedWorkOrder.workOrderType === WORK_ORD_INSTALLATION) {
+        unit.unitInstalledDate = savedWorkOrder.workOrderCompletedDate;
+      }
+
+      await unit.save();
+    }
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(workorder_success_code, workOrder_completed));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get Work Orders By Customer Unit
 export const GetWorkOrdersByUnit = async (req, res) => {
   try {
     const { id } = req.params;
@@ -178,7 +356,6 @@ export const GetWorkOrdersByUnit = async (req, res) => {
 };
 
 // Get Work Order Details - Populated
-
 export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,73 +398,7 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
   }
 };
 
-// Update Work Order Details
-
-export const updateWorkOrderDetails = async (req, res) => {
-  try {
-    const { error, value } = WorkOrderUpdateSchema.validate(req.body);
-
-    if (error) {
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json(ApiResponse.error(bad_request_code, error.message));
-    }
-
-    const { _id, workOrderType, workOrderScheduledDate, workOrderFrom } = value;
-
-    const workOrder = await WorkOrder.findById(new ObjectId(_id));
-
-    if (!workOrder) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json(ApiResponse.error(bad_request_code, workOrder_not_found));
-    }
-
-    if (workOrder.workOrderScheduledDate != workOrderScheduledDate) {
-      const unit = await Unit.findById(
-        new ObjectId(workOrder.workOrderUnitReference)
-      );
-
-      if (workOrder.workOrderType === WORK_ORD_SERVICE) {
-        unit.unitNextMaintenanceDate = workOrderScheduledDate;
-        await unit.save();
-      }
-    }
-
-    if (
-      workOrder.workOrderStatus === CREATED_STATUS &&
-      workOrder.workOrderType != workOrderType
-    ) {
-      const sequenceValue = await getSequenceValue(
-        getSequenceType(workOrderType)
-      );
-
-      workOrder.workOrderCode = generateWorkOrderNumber(
-        getSequenceType(workOrderType),
-        sequenceValue
-      );
-
-      workOrder.workOrderType = workOrderType;
-    }
-
-    workOrder.workOrderScheduledDate = workOrderScheduledDate;
-    workOrder.workOrderFrom = workOrderFrom;
-
-    await workOrder.save();
-
-    return res
-      .status(httpStatus.OK)
-      .json(ApiResponse.response(workorder_success_code, success_message));
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(httpStatus.INTERNAL_SERVER_ERROR)
-      .json(ApiResponse.error(bad_request_code, error.message));
-  }
-};
-
 // Assign Employees To Work Order
-
 export const workOrderAssign = async (req, res) => {
   try {
     const { error, value } = WorkOrderAssignSchema.validate(req.body);
@@ -351,87 +462,7 @@ export const workOrderAssign = async (req, res) => {
   }
 };
 
-// Change Work Order Status To COMPLETED
-
-export const workOrderCompleteState = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const workOrder = await WorkOrder.findById(new ObjectId(id));
-
-    if (!workOrder) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json(ApiResponse.error(bad_request_code, workOrder_not_found));
-    }
-
-    if (workOrder.workOrderStatus === CREATED_STATUS) {
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json(ApiResponse.error(bad_request_code, workOrder_not_scheduled));
-    }
-
-    workOrder.workOrderStatus = COMPLETED_STATUS;
-    workOrder.workOrderCompletedDate = new Date();
-
-    const savedWorkOrder = await workOrder.save();
-
-    const unit = await Unit.findById(
-      new ObjectId(workOrder.workOrderUnitReference)
-    );
-
-    if (!unit) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json(ApiResponse.error(bad_request_code, customer_unit_not_found));
-    }
-
-    unit.unitLastMaintenanceDate = new Date();
-    // After 4 months the next service
-    unit.unitNextMaintenanceDate = new Date().setMonth(
-      new Date().getMonth() + 4
-    );
-
-    const savedUnit = await unit.save();
-
-    if (
-      savedWorkOrder.workOrderType === WORK_ORD_SERVICE ||
-      savedWorkOrder.workOrderType === WORK_ORD_INSTALLATION
-    ) {
-      const customer = await Customer.findById(
-        new ObjectId(workOrder.workOrderCustomerId)
-      );
-
-      await updateSequenceValue(SERVICE_SEQ);
-
-      const sequenceValue = await getSequenceValue(SERVICE_SEQ);
-
-      const newCode = generateWorkOrderNumber(SERVICE_SEQ, sequenceValue);
-
-      const newWorkOrder = new WorkOrder({
-        workOrderCode: newCode,
-        workOrderScheduledDate: savedUnit.unitNextMaintenanceDate,
-        workOrderCustomerId: customer._id,
-        workOrderType: WORK_ORD_SERVICE,
-        workOrderUnitReference: savedUnit._id,
-      });
-
-      await newWorkOrder.save();
-    }
-
-    return res
-      .status(httpStatus.OK)
-      .json(ApiResponse.response(workorder_success_code, workOrder_completed));
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(httpStatus.INTERNAL_SERVER_ERROR)
-      .json(ApiResponse.error(bad_request_code, error.message));
-  }
-};
-
 // Upload Images To Work Order
-
 export const uploadWorkImages = async (req, res) => {
   try {
     const files = req.files;
@@ -519,7 +550,6 @@ export const uploadWorkImages = async (req, res) => {
 };
 
 // Get Work Order Overview To Users
-
 export const getEmployeeAssignedWorkOverview = async (req, res) => {
   try {
     const employeeId = req.user.id;
@@ -565,7 +595,6 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
 };
 
 // Update Work Order Employee Tips
-
 export const updateWorkOrderEmployeeTips = async (req, res) => {
   try {
     const { id, amount } = req.body;
@@ -628,7 +657,6 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
 };
 
 // Add / Update Work Order Invoice
-
 export const addUpdateWorkOrderChargers = async (req, res) => {
   try {
     const id = req.body.id;
@@ -757,7 +785,6 @@ export const downloadInvoice = async (req, res) => {
 };
 
 // Get the today's scheduled work count
-
 export const getTodaysWorkCount = async (req, res) => {
   try {
     const today = new Date();

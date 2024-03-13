@@ -4,8 +4,9 @@ import { checkAdmin } from "../middleware/permission.js";
 import {
   GetWorkOrdersByUnit,
   addUpdateWorkOrderChargers,
-  createRepairJob,
+  createJob,
   deleteFilesFromDrive,
+  deleteWorkOrder,
   downloadInvoice,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
@@ -26,9 +27,10 @@ workOrderRoutes.get(
   [verifyToken, checkAdmin],
   GetWorkOrdersByUnit
 );
-workOrderRoutes.post("/add-job", [verifyToken, checkAdmin], createRepairJob);
+workOrderRoutes.post("/add-job", [verifyToken, checkAdmin], createJob);
 workOrderRoutes.get("/:id", [verifyToken], getDetailsOfWorkOrderWithPopulated);
 workOrderRoutes.put("/", [verifyToken, checkAdmin], updateWorkOrderDetails);
+workOrderRoutes.delete("/:id", [verifyToken, checkAdmin], deleteWorkOrder);
 workOrderRoutes.post(
   "/add-employees",
   [verifyToken, checkAdmin],

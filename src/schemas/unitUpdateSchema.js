@@ -6,8 +6,8 @@ export const unitUpdateSchema = Joi.object({
   unitBrand: Joi.string().required(),
   unitModel: Joi.string().required(),
   unitSerialNo: Joi.string().allow(""),
-  unitInstalledDate: Joi.date(),
-  unitLastMaintenanceDate: Joi.date().required(),
+  unitInstalledDate: Joi.date().allow(null),
+  unitLastMaintenanceDate: Joi.date().allow(null),
   unitNextMaintenanceDate: Joi.date().required(),
   unitStatus: Joi.string().valid(ACTIVE, INCATIVE).default(ACTIVE),
 });

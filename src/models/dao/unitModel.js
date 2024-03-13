@@ -27,11 +27,11 @@ const unitSchema = new Schema({
   },
   unitLastMaintenanceDate: {
     type: Date,
-    required: true,
+    default: null,
   },
   unitNextMaintenanceDate: {
     type: Date,
-    required: true,
+    default: null,
   },
   unitStatus: {
     type: String,
