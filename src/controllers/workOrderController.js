@@ -290,6 +290,27 @@ export const workOrderCompleteState = async (req, res) => {
   }
 };
 
+// Get all work Orders - Admin
+export const getWorkOrders = async (req, res) => {
+  try {
+    const jobs = await WorkOrder.find()
+      .sort({ workOrderScheduledDate: 1 })
+      .populate("workOrderCustomerId")
+      .populate("workOrderUnitReference");
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(workorder_success_code, success_message, jobs)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
 // Get Work Orders By Customer Unit
 export const GetWorkOrdersByUnit = async (req, res) => {
   try {

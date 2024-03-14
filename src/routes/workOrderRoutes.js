@@ -11,6 +11,7 @@ import {
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   getTodaysWorkCount,
+  getWorkOrders,
   updateWorkOrderDetails,
   updateWorkOrderEmployeeTips,
   uploadWorkImages,
@@ -27,6 +28,7 @@ workOrderRoutes.get(
   [verifyToken, checkAdmin],
   GetWorkOrdersByUnit
 );
+workOrderRoutes.get("/jobs", [verifyToken, checkAdmin], getWorkOrders);
 workOrderRoutes.post("/add-job", [verifyToken, checkAdmin], createJob);
 workOrderRoutes.get("/:id", [verifyToken], getDetailsOfWorkOrderWithPopulated);
 workOrderRoutes.put("/", [verifyToken, checkAdmin], updateWorkOrderDetails);
