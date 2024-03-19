@@ -24,14 +24,6 @@ import {
 } from "../constants/messageConstants.js";
 import { unitUpdateSchema } from "../schemas/unitUpdateSchema.js";
 import { WorkOrder } from "../models/dao/workOrderModel.js";
-import {
-  INSTALLATION_SEQ,
-  SERVICE_SEQ,
-  WORK_ORD_INSTALLATION,
-  WORK_ORD_SERVICE,
-} from "../constants/commonConstants.js";
-import { generateWorkOrderNumber } from "../services/commonServices.js";
-import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { unitDetailsUpdateSchema } from "../schemas/unitDetailsUpdateSchema.js";
 import { QRCodeModel } from "../models/dao/qrCodeModel.js";
 import { unitUpdateQrSchema } from "../schemas/unitUpdateQrSchema.js";
@@ -54,7 +46,6 @@ export const AddCustomerUnit = async (req, res) => {
       unitModel,
       unitSerialNo,
       unitInstalledDate,
-      unitNextMaintenanceDate,
       unitStatus,
     } = value;
 
@@ -72,8 +63,6 @@ export const AddCustomerUnit = async (req, res) => {
       unitModel,
       unitSerialNo,
       unitInstalledDate,
-      unitLastMaintenanceDate: unitInstalledDate,
-      unitNextMaintenanceDate,
       unitStatus,
     });
 
@@ -186,6 +175,14 @@ export const deleteUnit = async (req, res) => {
         );
     }
 
+    if (unit.unitQrCode) {
+      const qrCode = await QRCodeModel.findById(unit.unitQrCode);
+
+      qrCode.qrCodeAvailable = true;
+
+      await qrCode.save();
+    }
+
     await Unit.deleteOne(unit);
 
     return res
@@ -234,6 +231,7 @@ export const updateUnitSerialNumber = async (req, res) => {
   }
 };
 
+// update unit qr code
 export const updateUnitQrCode = async (req, res) => {
   try {
     const { error, value } = unitUpdateQrSchema.validate(req.body);

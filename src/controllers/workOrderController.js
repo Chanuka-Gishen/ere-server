@@ -35,12 +35,12 @@ import {
 } from "../services/commonServices.js";
 import Customer from "../models/dao/customerModel.js";
 import {
+  CMP_ERE,
+  CMP_SINGER,
   COMPLETED_STATUS,
   CREATED_STATUS,
   INVOICE_SEQUENCE,
-  REPAIR_SEQ,
   SCHEDULED_STATUS,
-  SERVICE_SEQ,
   WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
@@ -126,7 +126,13 @@ export const updateWorkOrderDetails = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, error.message));
     }
 
-    const { _id, workOrderType, workOrderScheduledDate, workOrderFrom } = value;
+    const {
+      _id,
+      workOrderType,
+      workOrderScheduledDate,
+      workOrderFrom,
+      workOrderInvoiceNumber,
+    } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(_id));
 
@@ -134,6 +140,10 @@ export const updateWorkOrderDetails = async (req, res) => {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
+    }
+
+    if (workOrder.workOrderFrom === CMP_SINGER) {
+      workOrder.workOrderInvoiceNumber = workOrderInvoiceNumber;
     }
 
     if (workOrder.workOrderScheduledDate != workOrderScheduledDate) {
@@ -330,10 +340,6 @@ export const GetWorkOrdersByUnit = async (req, res) => {
       },
       {
         $facet: {
-          scheduled: [
-            { $match: { workOrderStatus: SCHEDULED_STATUS } },
-            { $sort: { workOrderScheduledDate: 1 } },
-          ],
           created: [
             { $match: { workOrderStatus: CREATED_STATUS } },
             { $sort: { workOrderScheduledDate: 1 } },
@@ -347,7 +353,7 @@ export const GetWorkOrdersByUnit = async (req, res) => {
       {
         $project: {
           workOrders: {
-            $concatArrays: ["$scheduled", "$created", "$completed"],
+            $concatArrays: ["$created", "$completed"],
           },
         },
       },
@@ -456,10 +462,6 @@ export const workOrderAssign = async (req, res) => {
         );
     }
 
-    if (workOrder.workOrderStatus != SCHEDULED_STATUS) {
-      workOrder.workOrderStatus = SCHEDULED_STATUS;
-    }
-
     const employeeIds = workOrderAssignedEmployees.map((emp) => ({
       employee: new ObjectId(emp._id),
       tip: {
@@ -468,7 +470,6 @@ export const workOrderAssign = async (req, res) => {
     }));
 
     workOrder.workOrderAssignedEmployees = employeeIds;
-    workOrder.workOrderStatus = SCHEDULED_STATUS;
 
     await workOrder.save();
 
@@ -570,7 +571,7 @@ export const uploadWorkImages = async (req, res) => {
   }
 };
 
-// Get Work Order Overview To Users
+// Get Work Order Overview To Employees
 export const getEmployeeAssignedWorkOverview = async (req, res) => {
   try {
     const employeeId = req.user.id;
@@ -587,7 +588,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
 
     if (employee.userRole === ADMIN_ROLE) {
       result = await WorkOrder.find({
-        workOrderStatus: { $in: [SCHEDULED_STATUS, CREATED_STATUS] },
+        workOrderStatus: { $in: [CREATED_STATUS] },
       })
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
@@ -595,7 +596,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
     } else {
       result = await WorkOrder.find({
         "workOrderAssignedEmployees.employee": new ObjectId(employeeId),
-        workOrderStatus: SCHEDULED_STATUS,
+        workOrderStatus: CREATED_STATUS,
       })
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
@@ -691,7 +692,10 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
         .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
     }
 
-    if (!workOrder.workOrderInvoiceNumber) {
+    if (
+      !workOrder.workOrderInvoiceNumber &&
+      workOrder.workOrderFrom === CMP_ERE
+    ) {
       await updateSequenceValue(INVOICE_SEQUENCE);
       const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
 
@@ -882,4 +886,11 @@ export const deleteFilesFromDrive = async (req, res) => {
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
   }
+};
+
+export const replaceSheduledStatus = async () => {
+  await WorkOrder.updateMany(
+    { workOrderStatus: SCHEDULED_STATUS }, // Filter criteria
+    { $set: { workOrderStatus: CREATED_STATUS } } // Update to be applied
+  );
 };
