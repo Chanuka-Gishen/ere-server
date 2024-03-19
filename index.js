@@ -17,7 +17,6 @@ import {
   addConstant,
   createBulkQrCodes,
 } from "./src/controllers/qrController.js";
-import { replaceSheduledStatus } from "./src/controllers/workOrderController.js";
 
 dotenv.config();
 const app = express();
@@ -65,8 +64,6 @@ db.once("connected", () => {
   //addSequence();
 
   //deleteFoldersAndFiles();
-
-  replaceSheduledStatus();
 
   // Start your Express server here
   app.listen(port, () => {
