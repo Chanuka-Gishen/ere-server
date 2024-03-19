@@ -887,10 +887,3 @@ export const deleteFilesFromDrive = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
-
-export const replaceSheduledStatus = async () => {
-  await WorkOrder.updateMany(
-    { workOrderStatus: SCHEDULED_STATUS }, // Filter criteria
-    { $set: { workOrderStatus: CREATED_STATUS } } // Update to be applied
-  );
-};
