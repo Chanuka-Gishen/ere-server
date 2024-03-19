@@ -4,7 +4,6 @@ import {
   CMP_SINGER,
   COMPLETED_STATUS,
   CREATED_STATUS,
-  SCHEDULED_STATUS,
   WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
@@ -167,7 +166,7 @@ const workOrderSchema = new Schema({
   },
   workOrderStatus: {
     type: String,
-    enum: [CREATED_STATUS, SCHEDULED_STATUS, COMPLETED_STATUS],
+    enum: [CREATED_STATUS, COMPLETED_STATUS],
     default: CREATED_STATUS,
   },
   workOrderInvoiceNumber: {
