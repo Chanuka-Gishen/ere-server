@@ -251,12 +251,6 @@ export const workOrderCompleteState = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    if (workOrder.workOrderStatus === CREATED_STATUS) {
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json(ApiResponse.error(bad_request_code, workOrder_not_scheduled));
-    }
-
     workOrder.workOrderStatus = COMPLETED_STATUS;
     workOrder.workOrderCompletedDate = new Date();
 
