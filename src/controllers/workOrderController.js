@@ -238,6 +238,8 @@ export const deleteWorkOrder = async (req, res) => {
       await unit.save();
     }
 
+    await WorkOrder.deleteOne(job);
+
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, workOrder_deleted));
