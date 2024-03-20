@@ -14,7 +14,7 @@ export const employee_incorrect_pwd = "Incorrect Password";
 export const employee_password_not_match = "Password not matching";
 export const employee_inactive = "You have been terminated";
 
-export const customer_exists = "Customer exists";
+export const customer_exists = "Customer already registered";
 export const customer_registered = "Customer registered";
 export const customer_not_found = "Customer not found";
 export const customer_unit_added = "New unit added";

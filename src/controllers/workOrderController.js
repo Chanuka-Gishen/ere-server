@@ -57,7 +57,7 @@ import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { generateInvoicePDF } from "../services/pdfServices.js";
 import PDFDocument from "pdfkit";
 
-// Create New Repair Job
+// Create New Job
 export const createJob = async (req, res) => {
   try {
     const { error, value } = WorkOrderAddSchema.validate(req.body);
@@ -68,7 +68,12 @@ export const createJob = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, error.message));
     }
 
-    const { workOrderType, workOrderUnit, workOrderScheduledDate } = value;
+    const {
+      workOrderType,
+      workOrderUnit,
+      workOrderScheduledDate,
+      workOrderFrom,
+    } = value;
 
     const unit = await Unit.findById(new ObjectId(workOrderUnit));
 
@@ -99,6 +104,7 @@ export const createJob = async (req, res) => {
       workOrderCode: code,
       workOrderCustomerId: customer._id,
       workOrderUnitReference: unit._id,
+      workOrderFrom: workOrderFrom,
       workOrderScheduledDate: new Date(workOrderScheduledDate),
     });
 
@@ -146,15 +152,17 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrder.workOrderInvoiceNumber = workOrderInvoiceNumber;
     }
 
-    if (workOrder.workOrderScheduledDate != workOrderScheduledDate) {
+    if (
+      workOrder.workOrderStatus === CREATED_STATUS &&
+      workOrder.workOrderScheduledDate != workOrderScheduledDate &&
+      workOrder.workOrderType === WORK_ORD_SERVICE
+    ) {
       const unit = await Unit.findById(
         new ObjectId(workOrder.workOrderUnitReference)
       );
 
-      if (workOrder.workOrderType === WORK_ORD_SERVICE) {
-        unit.unitNextMaintenanceDate = workOrderScheduledDate;
-        await unit.save();
-      }
+      unit.unitNextMaintenanceDate = workOrderScheduledDate;
+      await unit.save();
     }
 
     if (
@@ -175,7 +183,10 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrder.workOrderType = workOrderType;
     }
 
-    workOrder.workOrderScheduledDate = workOrderScheduledDate;
+    if (workOrder.workOrderStatus === CREATED_STATUS) {
+      workOrder.workOrderScheduledDate = workOrderScheduledDate;
+    }
+
     workOrder.workOrderFrom = workOrderFrom;
 
     await workOrder.save();
@@ -706,28 +717,33 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
 
     // Calculate the sum of item costs
     const itemsTotal = items.reduce(
-      (total, item) => total + (item.itemQty || 0) * (item.itemGrossPrice || 0),
+      (total, item) =>
+        total +
+        (parseFloat(item.itemQty) || 0) *
+          (parseFloat(item.itemGrossPrice) || 0),
       0
     );
 
     const itemsNetTotal = items.reduce(
-      (total, item) => total + (item.itemQty || 0) * (item.itemNetPrice || 0),
+      (total, item) =>
+        total +
+        (parseFloat(item.itemQty) || 0) * (parseFloat(item.itemNetPrice) || 0),
       0
     );
 
     // Calculate the total of additional charges
     const additionalChargesTotal =
-      (serviceCharges?.amount || 0) +
-      (labourCharges?.amount || 0) +
-      (transportCharges?.amount || 0) +
-      (otherCharges?.amount || 0);
+      (parseFloat(serviceCharges?.amount) || 0) +
+      (parseFloat(labourCharges?.amount) || 0) +
+      (parseFloat(transportCharges?.amount) || 0) +
+      (parseFloat(otherCharges?.amount) || 0);
 
     // Calculate the total of additional chargers net amount
     const additionalChargesNetTotal =
-      (serviceCharges?.netAmount || 0) +
-      (labourCharges?.netAmount || 0) +
-      (transportCharges?.netAmount || 0) +
-      (otherCharges?.netAmount || 0);
+      (parseFloat(serviceCharges?.netAmount) || 0) +
+      (parseFloat(labourCharges?.netAmount) || 0) +
+      (parseFloat(transportCharges?.netAmount) || 0) +
+      (parseFloat(otherCharges?.netAmount) || 0);
 
     // Calculate the grand total
     const grandTotal = itemsTotal + additionalChargesTotal;
