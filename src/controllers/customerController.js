@@ -15,8 +15,8 @@ import {
 } from "../constants/messageConstants.js";
 import { ObjectId } from "mongodb";
 import { customerUpdateSchema } from "../schemas/customerUpdateScehema.js";
-import Unit from "../models/dao/unitModel.js";
 
+// Register customer
 export const registerCustomer = async (req, res) => {
   try {
     const { error, value } = customerRegisterSchema.validate(req.body);
@@ -35,7 +35,9 @@ export const registerCustomer = async (req, res) => {
       customerEmail,
     } = value;
 
-    const existingUser = await Customer.findOne({ customerName });
+    const existingUser = await Customer.findOne({
+      "customerTel.mobile": customerMobile,
+    });
 
     if (existingUser) {
       return res
