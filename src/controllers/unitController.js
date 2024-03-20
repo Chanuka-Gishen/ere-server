@@ -387,3 +387,75 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+// Get units sorted and group by next maintainence date
+export const getUnitsForCalender = async (req, res) => {
+  try {
+    const units = await Unit.aggregate([
+      {
+        $match: {
+          unitNextMaintenanceDate: { $ne: null },
+        },
+      },
+      {
+        $addFields: {
+          maintenanceDate: {
+            $dateToString: {
+              format: "%Y-%m-%d", // Format as YYYY-MM-DD
+              date: "$unitNextMaintenanceDate", // Extract parts from this date field
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "unitCustomerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      {
+        $lookup: {
+          from: "qrcodes",
+          localField: "unitQrCode",
+          foreignField: "_id",
+          as: "qrCode",
+        },
+      },
+      {
+        $group: {
+          _id: "$maintenanceDate", // Group by the extracted date parts
+          units: {
+            $push: {
+              $mergeObjects: [
+                "$$ROOT",
+                {
+                  customer: { $arrayElemAt: ["$customer", 0] },
+                  qrCode: {
+                    $cond: [
+                      { $eq: [{ $size: "$qrCode" }, 0] },
+                      null,
+                      { $arrayElemAt: ["$qrCode", 0] },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(customer_success_code, success_message, units)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
