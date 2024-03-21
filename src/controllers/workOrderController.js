@@ -909,6 +909,7 @@ export const getTotalCostStats = async (req, res) => {
     const pipeline = [
       {
         $match: {
+          workOrderStatus: COMPLETED_STATUS,
           workOrderInvoiceNumber: { $ne: null },
           "workOrderChargers.grandNetTotal": { $exists: true },
           "workOrderChargers.grandTotal": { $exists: true },
