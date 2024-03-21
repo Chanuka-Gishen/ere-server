@@ -821,6 +821,134 @@ export const downloadInvoice = async (req, res) => {
   }
 };
 
+// Get all invoices
+export const getAllInvoices = async (req, res) => {
+  try {
+    const filteredDate = req.body.filteredDate;
+
+    const pipeline = [
+      {
+        $match: {
+          workOrderStatus: COMPLETED_STATUS,
+          workOrderInvoiceNumber: { $ne: null },
+          workOrderChargers: { $exists: true, $ne: null },
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "workOrderCustomerId",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      {
+        $unwind: "$workOrderChargers.items",
+      },
+      {
+        $unwind: "$workOrderCustomerId",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          workOrderCode: { $first: "$workOrderCode" },
+          workOrderFrom: { $first: "$workOrderFrom" },
+          workOrderInvoiceNumber: { $first: "$workOrderInvoiceNumber" },
+          customer: { $first: { $arrayElemAt: ["$customer", 0] } },
+          workOrderCompletedDate: { $first: "$workOrderCompletedDate" },
+          totalNetItemPrice: { $sum: "$workOrderChargers.items.itemNetPrice" },
+          totalGrossItemPrice: {
+            $sum: "$workOrderChargers.items.itemGrossPrice",
+          },
+          serviceCharges: { $first: "$workOrderChargers.serviceCharges" },
+          labourCharges: { $first: "$workOrderChargers.labourCharges" },
+          transportCharges: { $first: "$workOrderChargers.transportCharges" },
+          otherCharges: { $first: "$workOrderChargers.otherCharges" },
+          grandNetTotal: { $first: "$workOrderChargers.grandNetTotal" },
+          grandTotal: { $first: "$workOrderChargers.grandTotal" },
+        },
+      },
+      {
+        $sort: {
+          workOrderCompletedDate: 1,
+        },
+      },
+    ];
+
+    if (filteredDate) {
+      const date = new Date(filteredDate);
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      pipeline[0].$match.workOrderCompletedDate = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+
+    const result = await WorkOrder.aggregate(pipeline);
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(workorder_success_code, success_message, result)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get total net cost and gross cost
+export const getTotalCostStats = async (req, res) => {
+  try {
+    const filteredDate = req.body.filteredDate;
+
+    const pipeline = [
+      {
+        $match: {
+          workOrderInvoiceNumber: { $ne: null },
+          "workOrderChargers.grandNetTotal": { $exists: true },
+          "workOrderChargers.grandTotal": { $exists: true },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          NetTotal: { $sum: "$workOrderChargers.grandNetTotal" },
+          total: { $sum: "$workOrderChargers.grandTotal" },
+        },
+      },
+    ];
+
+    if (filteredDate) {
+      const date = new Date(filteredDate);
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      pipeline[0].$match.workOrderCompletedDate = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
+
+    const result = await WorkOrder.aggregate(pipeline);
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(workorder_success_code, success_message, result[0])
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
 // Get the today's scheduled work count
 export const getTodaysWorkCount = async (req, res) => {
   try {

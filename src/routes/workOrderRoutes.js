@@ -8,9 +8,11 @@ import {
   deleteFilesFromDrive,
   deleteWorkOrder,
   downloadInvoice,
+  getAllInvoices,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   getTodaysWorkCount,
+  getTotalCostStats,
   getWorkOrders,
   updateWorkOrderDetails,
   updateWorkOrderEmployeeTips,
@@ -74,5 +76,11 @@ workOrderRoutes.post(
 );
 workOrderRoutes.get("/download-invoice/:invoiceNo", downloadInvoice);
 workOrderRoutes.post("/today-count", getTodaysWorkCount);
+workOrderRoutes.post("/invoices", [verifyToken, checkAdmin], getAllInvoices);
+workOrderRoutes.post(
+  "/invoices-stats",
+  [verifyToken, checkAdmin],
+  getTotalCostStats
+);
 
 export default workOrderRoutes;
