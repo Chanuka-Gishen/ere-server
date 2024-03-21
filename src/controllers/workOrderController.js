@@ -843,12 +843,6 @@ export const getAllInvoices = async (req, res) => {
         },
       },
       {
-        $unwind: "$workOrderChargers.items",
-      },
-      {
-        $unwind: "$workOrderCustomerId",
-      },
-      {
         $group: {
           _id: "$_id",
           workOrderCode: { $first: "$workOrderCode" },
