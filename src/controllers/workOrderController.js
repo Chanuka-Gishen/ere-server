@@ -6,6 +6,7 @@ import {
   customer_error_code,
   workorder_error_code,
   workorder_success_code,
+  workorder_warning_code,
 } from "../constants/statusCodes.js";
 import Unit from "../models/dao/unitModel.js";
 import {
@@ -21,6 +22,7 @@ import {
   workOrder_empty_images,
   workOrder_images_missing,
   workOrder_invoice_not_created,
+  workOrder_not_assigned,
   workOrder_not_found,
   workOrder_not_scheduled,
   workOrder_tip_missing,
@@ -262,6 +264,14 @@ export const workOrderCompleteState = async (req, res) => {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
+    }
+
+    if (workOrder.workOrderAssignedEmployees.length === 0) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(workorder_warning_code, workOrder_not_assigned)
+        );
     }
 
     workOrder.workOrderStatus = COMPLETED_STATUS;
