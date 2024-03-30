@@ -19,3 +19,4 @@ export const CONST_CODE_QR = "QR";
 
 export const CMP_ERE = "ERE";
 export const CMP_SINGER = "Singer";
+export const CMP_SINGER_DIR = "Singer Direct Pay";
