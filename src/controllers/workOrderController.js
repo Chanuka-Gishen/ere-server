@@ -39,6 +39,7 @@ import Customer from "../models/dao/customerModel.js";
 import {
   CMP_ERE,
   CMP_SINGER,
+  CMP_SINGER_DIR,
   COMPLETED_STATUS,
   CREATED_STATUS,
   INVOICE_SEQUENCE,
@@ -150,7 +151,10 @@ export const updateWorkOrderDetails = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    if (workOrder.workOrderFrom === CMP_SINGER) {
+    if (
+      workOrder.workOrderFrom === CMP_SINGER ||
+      workOrder.workOrderFrom === CMP_SINGER_DIR
+    ) {
       workOrder.workOrderInvoiceNumber = workOrderInvoiceNumber;
     }
 
@@ -725,6 +729,7 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
       labourCharges,
       transportCharges,
       otherCharges,
+      discount,
     } = data;
 
     // Calculate the sum of item costs
@@ -761,10 +766,20 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
     const grandTotal = itemsTotal + additionalChargesTotal;
     const grandNetTotal = itemsNetTotal + additionalChargesNetTotal;
 
+    let invDiscountPerc = discount ? discount.percentage : 0;
+    const discountAmount =
+      invDiscountPerc === 0 ? 0 : grandTotal * (invDiscountPerc / 100);
+    const grandTotalWithDiscount =
+      invDiscountPerc === 0
+        ? grandTotal
+        : parseFloat(grandTotal) - parseFloat(discountAmount);
+
     workOrder.workOrderChargers = {
       ...data,
+      "discount.percentage": invDiscountPerc,
+      "discount.amount": discountAmount,
       grandNetTotal: grandNetTotal,
-      grandTotal: grandTotal,
+      grandTotal: grandTotalWithDiscount,
     };
 
     await workOrder.save();

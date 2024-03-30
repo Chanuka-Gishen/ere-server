@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import {
   CMP_ERE,
   CMP_SINGER,
+  CMP_SINGER_DIR,
   COMPLETED_STATUS,
   CREATED_STATUS,
   WORK_ORD_INSTALLATION,
@@ -125,6 +126,16 @@ const chargersSchema = new Schema({
       default: 0,
     },
   },
+  discount: {
+    percentage: {
+      type: Number,
+      default: 0,
+    },
+    amount: {
+      type: Number,
+      default: 0,
+    },
+  },
   grandNetTotal: {
     type: Number,
     default: 0,
@@ -144,7 +155,7 @@ const workOrderSchema = new Schema({
   },
   workOrderFrom: {
     type: String,
-    enum: [CMP_ERE, CMP_SINGER],
+    enum: [CMP_ERE, CMP_SINGER, CMP_SINGER_DIR],
     default: CMP_ERE,
   },
   workOrderCustomerId: {
