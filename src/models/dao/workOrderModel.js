@@ -202,6 +202,20 @@ const workOrderSchema = new Schema({
     type: Number,
     default: 0,
   },
+  workOrderQuotationApproved: {
+    type: Boolean,
+    default: false,
+  },
+  workOrderLinked: {
+    isLinked: {
+      type: Boolean,
+      default: false,
+    },
+    ordersList: {
+      type: Array,
+      default: [],
+    },
+  },
   workOrderChargers: {
     type: chargersSchema,
     default: null,

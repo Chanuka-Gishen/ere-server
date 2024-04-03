@@ -59,6 +59,7 @@ import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { generateInvoicePDF } from "../services/pdfServices.js";
 import PDFDocument from "pdfkit";
+import { jobLinkListFilterSchema } from "../schemas/jobLinkListFilterSchema.js";
 
 // Create New Job
 export const createJob = async (req, res) => {
@@ -1040,6 +1041,49 @@ export const deleteFilesFromDrive = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get customer workOrder with filtered by sheduled date and customer
+export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
+  try {
+    const { error, value } = jobLinkListFilterSchema.validate(req.body);
+
+    if (error) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(bad_request_code, error.message));
+    }
+
+    const { customerId, scheduledDate } = value;
+
+    const customer = await Customer.findById(new ObjectId(customerId));
+
+    if (!customer) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(bad_request_code, customer_not_found));
+    }
+
+    const workOrders = await WorkOrder.find({
+      workOrderCustomerId: new ObjectId(customer._id),
+      workOrderScheduledDate: new Date(scheduledDate),
+    });
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(
+          workorder_success_code,
+          success_message,
+          workOrders
+        )
+      );
   } catch (error) {
     console.log(error);
     return res

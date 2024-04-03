@@ -19,6 +19,7 @@ import {
   uploadWorkImages,
   workOrderAssign,
   workOrderCompleteState,
+  workOrdersBySheduledDateAndCustomer,
 } from "../controllers/workOrderController.js";
 import multer from "multer";
 
@@ -81,6 +82,11 @@ workOrderRoutes.post(
   "/invoices-stats",
   [verifyToken, checkAdmin],
   getTotalCostStats
+);
+workOrderRoutes.post(
+  "/link-jobs",
+  [verifyToken, checkAdmin],
+  workOrdersBySheduledDateAndCustomer
 );
 
 export default workOrderRoutes;
