@@ -1,18 +1,18 @@
 import { formatCurrency, getExactFilePath } from "./commonServices.js";
 
-let y = 450;
-
-const incrementYAndCheck = (doc) => {
-  y += 30;
-  if (y >= 750) {
-    doc.addPage();
-    y = 40; // Reset y for the new page
-  }
-  return y;
-};
-
 // Function to create PDF
 export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
+  let y = 450;
+
+  const incrementYAndCheck = (doc) => {
+    y += 30;
+    if (y >= 750) {
+      doc.addPage();
+      y = 40; // Reset y for the new page
+    }
+    return y;
+  };
+
   const logoPath = getExactFilePath("assets/ere-logo.jpg");
 
   // Logo and company information
