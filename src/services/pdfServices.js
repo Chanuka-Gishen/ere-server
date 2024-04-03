@@ -1,5 +1,16 @@
 import { formatCurrency, getExactFilePath } from "./commonServices.js";
 
+let y = 450;
+
+const incrementYAndCheck = (doc) => {
+  y += 30;
+  if (y >= 750) {
+    doc.addPage();
+    y = 40; // Reset y for the new page
+  }
+  return y;
+};
+
 // Function to create PDF
 export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   const logoPath = getExactFilePath("assets/ere-logo.jpg");
@@ -111,7 +122,6 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   doc.moveTo(50, 430).lineTo(550, 430).stroke();
 
   // Table rows
-  let y = 450;
   invoice.items.forEach((item) => {
     doc
       .font("Helvetica")
@@ -124,7 +134,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
         align: "right",
         width: 100,
       });
-    y += 30;
+    y = incrementYAndCheck(doc);
   });
 
   //y += 20;
@@ -137,7 +147,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .text(formatCurrency(invoice.serviceCharges.amount), 450, y, {
       align: "right",
     });
-  y += 30;
+  y = incrementYAndCheck(doc);
 
   // Labour Chargers
   doc.font("Helvetica-Bold").fontSize(12).text("Labour Chargers", 250, y);
@@ -147,7 +157,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .text(formatCurrency(invoice.labourCharges.amount), 450, y, {
       align: "right",
     });
-  y += 30;
+  y = incrementYAndCheck(doc);
 
   // Transport Chargers
   doc.font("Helvetica-Bold").fontSize(12).text("Transport Chargers", 250, y);
@@ -157,7 +167,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .text(formatCurrency(invoice.transportCharges.amount), 450, y, {
       align: "right",
     });
-  y += 30;
+  y = incrementYAndCheck(doc);
 
   // Other Chargers
   doc.font("Helvetica-Bold").fontSize(12).text("Other Chargers", 250, y);
@@ -167,7 +177,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .text(formatCurrency(invoice.otherCharges.amount), 450, y, {
       align: "right",
     });
-  y += 30;
+  y = incrementYAndCheck(doc);
 
   // Discount
   doc.font("Helvetica-Bold").fontSize(11).text("Discount", 250, y);
@@ -177,7 +187,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .text(`${invoice.discount.percentage} %`, 450, y, {
       align: "right",
     });
-  y += 30;
+  y = incrementYAndCheck(doc);
 
   // Grand Total
   doc.font("Helvetica-Bold").fontSize(12).text("Grand Total", 250, y);
