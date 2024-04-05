@@ -17,6 +17,7 @@ import {
   addConstant,
   createBulkQrCodes,
 } from "./src/controllers/qrController.js";
+import { changeWorkOrderCodes } from "./src/controllers/workOrderController.js";
 
 dotenv.config();
 const app = express();
@@ -60,10 +61,10 @@ db.once("connected", () => {
   console.log("Connected to MongoDB");
 
   //createDefaultAdmin();
-
   //addSequence();
-
   //deleteFoldersAndFiles();
+
+  // changeWorkOrderCodes();
 
   // Start your Express server here
   app.listen(port, () => {

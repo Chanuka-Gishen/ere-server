@@ -71,7 +71,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text(workOrder.workOrderInvoiceNumber, 420, 230, { align: "right" });
+    .text(invoice.invoiceNumber, 420, 230, { align: "right" });
   doc
     .font("Helvetica-Bold")
     .fontSize(12)

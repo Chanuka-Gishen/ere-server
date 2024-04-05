@@ -5,7 +5,7 @@ import {
   REPAIR_SEQ,
   SERVICE_SEQ,
 } from "../constants/commonConstants.js";
-import Sequence from "../models/dao/sequenceModel.js";
+import Sequence from "../models/sequenceModel.js";
 
 export const addSequence = async () => {
   const existingSequences = await Sequence.find();

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ACTIVE, INCATIVE } from "../../constants/commonConstants.js";
+import { ACTIVE, INCATIVE } from "../constants/commonConstants.js";
 
 const Schema = mongoose.Schema;
 

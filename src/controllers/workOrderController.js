@@ -8,7 +8,7 @@ import {
   workorder_success_code,
   workorder_warning_code,
 } from "../constants/statusCodes.js";
-import Unit from "../models/dao/unitModel.js";
+import Unit from "../models/unitModel.js";
 import {
   customer_not_found,
   customer_unit_not_found,
@@ -24,18 +24,18 @@ import {
   workOrder_invoice_not_created,
   workOrder_not_assigned,
   workOrder_not_found,
-  workOrder_not_scheduled,
   workOrder_tip_missing,
 } from "../constants/messageConstants.js";
-import { ImageModel, WorkOrder } from "../models/dao/workOrderModel.js";
+import { ImageModel, WorkOrder } from "../models/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
   generateInvoiceNumber,
   generateWorkOrderNumber,
   getSequenceType,
+  updateDateInWorkOrderCode,
 } from "../services/commonServices.js";
-import Customer from "../models/dao/customerModel.js";
+import Customer from "../models/customerModel.js";
 import {
   CMP_ERE,
   CMP_SINGER,
@@ -43,7 +43,6 @@ import {
   COMPLETED_STATUS,
   CREATED_STATUS,
   INVOICE_SEQUENCE,
-  SCHEDULED_STATUS,
   WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
@@ -53,13 +52,14 @@ import {
   deleteDriveFilesAdmin,
   uploadImagesToDrive,
 } from "../services/googleApi.js";
-import Employee from "../models/dao/employeeModel.js";
+import Employee from "../models/employeeModel.js";
 import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { generateInvoicePDF } from "../services/pdfServices.js";
 import PDFDocument from "pdfkit";
 import { jobLinkListFilterSchema } from "../schemas/jobLinkListFilterSchema.js";
+import { InvoiceModel } from "../models/invoiceModel.js";
 
 // Create New Job
 export const createJob = async (req, res) => {
@@ -101,7 +101,11 @@ export const createJob = async (req, res) => {
 
     const sequenceValue = await getSequenceValue(sequenceType);
 
-    const code = generateWorkOrderNumber(sequenceType, sequenceValue);
+    const code = generateWorkOrderNumber(
+      sequenceType,
+      sequenceValue,
+      workOrderScheduledDate
+    );
 
     const newJob = new WorkOrder({
       workOrderType: workOrderType,
@@ -142,6 +146,8 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrderScheduledDate,
       workOrderFrom,
       workOrderInvoiceNumber,
+      workOrderIsLinked,
+      workOrderLinkedJobs,
     } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(_id));
@@ -156,7 +162,26 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrder.workOrderFrom === CMP_SINGER ||
       workOrder.workOrderFrom === CMP_SINGER_DIR
     ) {
-      workOrder.workOrderInvoiceNumber = workOrderInvoiceNumber;
+      if (workOrder.workOrderInvoice) {
+        const invoice = await InvoiceModel.findById(
+          new ObjectId(workOrder.workOrderInvoice)
+        );
+
+        invoice.invoiceNumber = workOrderInvoiceNumber;
+
+        await invoice.save();
+      } else {
+        const newInvoice = new InvoiceModel({
+          invoiceNumber: workOrderInvoiceNumber,
+          invoiceLinkedWorkOrder: new ObjectId(workOrder._id),
+          invoiceLinkedCustomer: new ObjectId(workOrder.workOrderCustomerId),
+          invoiceLinkedUnit: new ObjectId(workOrder.workOrderUnitReference),
+        });
+
+        const savedInvoice = await newInvoice.save();
+
+        workOrder.workOrderInvoice = new ObjectId(savedInvoice._id);
+      }
     }
 
     if (
@@ -184,13 +209,25 @@ export const updateWorkOrderDetails = async (req, res) => {
 
       workOrder.workOrderCode = generateWorkOrderNumber(
         getSequenceType(workOrderType),
-        sequenceValue
+        sequenceValue,
+        workOrderScheduledDate
       );
 
       workOrder.workOrderType = workOrderType;
     }
 
     if (workOrder.workOrderStatus === CREATED_STATUS) {
+      if (
+        workOrder.workOrderScheduledDate != workOrderScheduledDate &&
+        workOrder.workOrderType === workOrderType
+      ) {
+        const parts = workOrder.workOrderCode.split("-");
+        workOrder.workOrderCode = updateDateInWorkOrderCode(
+          parts[0],
+          workOrderScheduledDate,
+          parts[2]
+        );
+      }
       workOrder.workOrderScheduledDate = workOrderScheduledDate;
     }
 
@@ -230,8 +267,6 @@ export const deleteWorkOrder = async (req, res) => {
       await deleteDriveFilesAdmin(deleteFileIds);
     }
 
-    await WorkOrder.deleteOne(job);
-
     const unit = await Unit.findById(new ObjectId(job.workOrderUnitReference));
 
     const workOrders = await WorkOrder.find({
@@ -243,6 +278,13 @@ export const deleteWorkOrder = async (req, res) => {
       unit.unitNextMaintenanceDate = null;
 
       await unit.save();
+    }
+
+    if (job.workOrderInvoice) {
+      const exitingsInvoice = await InvoiceModel.findById(
+        new ObjectId(job.workOrderInvoice)
+      );
+      await InvoiceModel.deleteOne(exitingsInvoice);
     }
 
     await WorkOrder.deleteOne(job);
@@ -328,7 +370,8 @@ export const getWorkOrders = async (req, res) => {
     const jobs = await WorkOrder.find()
       .sort({ workOrderScheduledDate: 1 })
       .populate("workOrderCustomerId")
-      .populate("workOrderUnitReference");
+      .populate("workOrderUnitReference")
+      .populate("workOrderInvoice");
 
     return res
       .status(httpStatus.OK)
@@ -356,36 +399,11 @@ export const GetWorkOrdersByUnit = async (req, res) => {
         .json(ApiResponse.error(customer_error_code, customer_unit_not_found));
     }
 
-    const workOrders = await WorkOrder.aggregate([
-      {
-        $match: { workOrderUnitReference: new ObjectId(unit._id) },
-      },
-      {
-        $facet: {
-          created: [
-            { $match: { workOrderStatus: CREATED_STATUS } },
-            { $sort: { workOrderScheduledDate: 1 } },
-          ],
-          completed: [
-            { $match: { workOrderStatus: COMPLETED_STATUS } },
-            { $sort: { workOrderScheduledDate: 1 } },
-          ],
-        },
-      },
-      {
-        $project: {
-          workOrders: {
-            $concatArrays: ["$created", "$completed"],
-          },
-        },
-      },
-      {
-        $unwind: "$workOrders",
-      },
-      {
-        $replaceRoot: { newRoot: "$workOrders" },
-      },
-    ]);
+    const populatedWorkOrders = await WorkOrder.find({
+      workOrderUnitReference: new ObjectId(unit._id),
+    })
+      .populate("workOrderInvoice")
+      .sort({ workOrderScheduledDate: 1 });
 
     return res
       .status(httpStatus.OK)
@@ -393,7 +411,7 @@ export const GetWorkOrdersByUnit = async (req, res) => {
         ApiResponse.response(
           workorder_success_code,
           success_message,
-          workOrders
+          populatedWorkOrders
         )
       );
   } catch (error) {
@@ -426,7 +444,8 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
           select: "_id userFullName userRole",
         },
       })
-      .populate("workOrderImages.imageUploadedBy");
+      .populate("workOrderImages.imageUploadedBy")
+      .populate("workOrderInvoice");
 
     if (!workOrder) {
       return res
@@ -614,6 +633,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
       })
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
+        .populate("workOrderInvoice")
         .sort({ workOrderScheduledDate: 1 });
     } else {
       result = await WorkOrder.find({
@@ -622,6 +642,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
       })
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
+        .populate("workOrderInvoice")
         .sort({ workOrderScheduledDate: 1 });
     }
 
@@ -700,116 +721,23 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
   }
 };
 
-// Add / Update Work Order Invoice
-export const addUpdateWorkOrderChargers = async (req, res) => {
+// Get invoice download file ---------------------------------- refactor this
+export const downloadInvoice = async (req, res) => {
   try {
-    const id = req.body.id;
-    const data = req.body.chargers;
+    const { id } = req.params; // Work Order Id
 
-    const workOrder = await WorkOrder.findById(new ObjectId(id));
+    const workOrder = await WorkOrder.findById(new ObjectId(id))
+      .populate("workOrderCustomerId")
+      .populate("workOrderUnitReference")
+      .populate("workOrderInvoice");
 
     if (!workOrder) {
       return res
-        .status(httpStatus.BAD_REQUEST)
+        .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
     }
 
-    if (
-      !workOrder.workOrderInvoiceNumber &&
-      workOrder.workOrderFrom === CMP_ERE
-    ) {
-      await updateSequenceValue(INVOICE_SEQUENCE);
-      const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
-
-      workOrder.workOrderInvoiceNumber = generateInvoiceNumber(sequenceValue);
-    }
-
-    const {
-      items,
-      serviceCharges,
-      labourCharges,
-      transportCharges,
-      otherCharges,
-      discount,
-    } = data;
-
-    // Calculate the sum of item costs
-    const itemsTotal = items.reduce(
-      (total, item) =>
-        total +
-        (parseFloat(item.itemQty) || 0) *
-          (parseFloat(item.itemGrossPrice) || 0),
-      0
-    );
-
-    const itemsNetTotal = items.reduce(
-      (total, item) =>
-        total +
-        (parseFloat(item.itemQty) || 0) * (parseFloat(item.itemNetPrice) || 0),
-      0
-    );
-
-    // Calculate the total of additional charges
-    const additionalChargesTotal =
-      (parseFloat(serviceCharges?.amount) || 0) +
-      (parseFloat(labourCharges?.amount) || 0) +
-      (parseFloat(transportCharges?.amount) || 0) +
-      (parseFloat(otherCharges?.amount) || 0);
-
-    // Calculate the total of additional chargers net amount
-    const additionalChargesNetTotal =
-      (parseFloat(serviceCharges?.netAmount) || 0) +
-      (parseFloat(labourCharges?.netAmount) || 0) +
-      (parseFloat(transportCharges?.netAmount) || 0) +
-      (parseFloat(otherCharges?.netAmount) || 0);
-
-    // Calculate the grand total
-    const grandTotal = itemsTotal + additionalChargesTotal;
-    const grandNetTotal = itemsNetTotal + additionalChargesNetTotal;
-
-    let invDiscountPerc = discount ? discount.percentage : 0;
-    const discountAmount =
-      invDiscountPerc === 0 ? 0 : grandTotal * (invDiscountPerc / 100);
-    const grandTotalWithDiscount =
-      invDiscountPerc === 0
-        ? grandTotal
-        : parseFloat(grandTotal) - parseFloat(discountAmount);
-
-    workOrder.workOrderChargers = {
-      ...data,
-      "discount.percentage": invDiscountPerc,
-      "discount.amount": discountAmount,
-      grandNetTotal: grandNetTotal,
-      grandTotal: grandTotalWithDiscount,
-    };
-
-    await workOrder.save();
-
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(workorder_success_code, workOrder_chargers_updated)
-      );
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(httpStatus.INTERNAL_SERVER_ERROR)
-      .json(ApiResponse.error(bad_request_code, error.message));
-  }
-};
-
-// Get invoice download file
-export const downloadInvoice = async (req, res) => {
-  try {
-    const { invoiceNo } = req.params;
-
-    const workOrder = await WorkOrder.findOne({
-      workOrderInvoiceNumber: invoiceNo,
-    })
-      .populate("workOrderCustomerId")
-      .populate("workOrderUnitReference");
-
-    if (!workOrder) {
+    if (!workOrder.workOrderInvoice) {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(
@@ -824,7 +752,7 @@ export const downloadInvoice = async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename=${workOrder.workOrderInvoiceNumber}.pdf`
+      `inline; filename=${invoice.invoiceNumber}.pdf`
     );
 
     // Stream the PDF buffer to the response
@@ -835,133 +763,10 @@ export const downloadInvoice = async (req, res) => {
       workOrder.workOrderCustomerId,
       workOrder.workOrderUnitReference,
       workOrder,
-      workOrder.workOrderChargers
+      workOrder.workOrderInvoice
     );
 
     doc.end();
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(httpStatus.INTERNAL_SERVER_ERROR)
-      .json(ApiResponse.error(bad_request_code, error.message));
-  }
-};
-
-// Get all invoices
-export const getAllInvoices = async (req, res) => {
-  try {
-    const filteredDate = req.body.filteredDate;
-
-    const pipeline = [
-      {
-        $match: {
-          workOrderStatus: COMPLETED_STATUS,
-          workOrderInvoiceNumber: { $ne: null },
-          workOrderChargers: { $exists: true, $ne: null },
-        },
-      },
-      {
-        $lookup: {
-          from: "customers",
-          localField: "workOrderCustomerId",
-          foreignField: "_id",
-          as: "customer",
-        },
-      },
-      {
-        $group: {
-          _id: "$_id",
-          workOrderCode: { $first: "$workOrderCode" },
-          workOrderFrom: { $first: "$workOrderFrom" },
-          workOrderInvoiceNumber: { $first: "$workOrderInvoiceNumber" },
-          customer: { $first: { $arrayElemAt: ["$customer", 0] } },
-          workOrderCompletedDate: { $first: "$workOrderCompletedDate" },
-          totalNetItemPrice: { $sum: "$workOrderChargers.items.itemNetPrice" },
-          totalGrossItemPrice: {
-            $sum: "$workOrderChargers.items.itemGrossPrice",
-          },
-          serviceCharges: { $first: "$workOrderChargers.serviceCharges" },
-          labourCharges: { $first: "$workOrderChargers.labourCharges" },
-          transportCharges: { $first: "$workOrderChargers.transportCharges" },
-          otherCharges: { $first: "$workOrderChargers.otherCharges" },
-          grandNetTotal: { $first: "$workOrderChargers.grandNetTotal" },
-          grandTotal: { $first: "$workOrderChargers.grandTotal" },
-        },
-      },
-      {
-        $sort: {
-          workOrderCompletedDate: 1,
-        },
-      },
-    ];
-
-    if (filteredDate) {
-      const date = new Date(filteredDate);
-      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-      pipeline[0].$match.workOrderCompletedDate = {
-        $gte: startDate,
-        $lte: endDate,
-      };
-    }
-
-    const result = await WorkOrder.aggregate(pipeline);
-
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(workorder_success_code, success_message, result)
-      );
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(httpStatus.INTERNAL_SERVER_ERROR)
-      .json(ApiResponse.error(bad_request_code, error.message));
-  }
-};
-
-// Get total net cost and gross cost
-export const getTotalCostStats = async (req, res) => {
-  try {
-    const filteredDate = req.body.filteredDate;
-
-    const pipeline = [
-      {
-        $match: {
-          workOrderStatus: COMPLETED_STATUS,
-          workOrderInvoiceNumber: { $ne: null },
-          "workOrderChargers.grandNetTotal": { $exists: true },
-          "workOrderChargers.grandTotal": { $exists: true },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          NetTotal: { $sum: "$workOrderChargers.grandNetTotal" },
-          total: { $sum: "$workOrderChargers.grandTotal" },
-        },
-      },
-    ];
-
-    if (filteredDate) {
-      const date = new Date(filteredDate);
-      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-      pipeline[0].$match.workOrderCompletedDate = {
-        $gte: startDate,
-        $lte: endDate,
-      };
-    }
-
-    const result = await WorkOrder.aggregate(pipeline);
-
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(workorder_success_code, success_message, result[0])
-      );
   } catch (error) {
     console.log(error);
     return res
@@ -1070,9 +875,18 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, customer_not_found));
     }
 
+    const startOfDay = new Date(scheduledDate);
+    startOfDay.setHours(0, 0, 0, 0); // Set time to the start of the day
+
+    const endOfDay = new Date(scheduledDate);
+    endOfDay.setHours(23, 59, 59, 999); // Set time to the end of the day
+
     const workOrders = await WorkOrder.find({
       workOrderCustomerId: new ObjectId(customer._id),
-      workOrderScheduledDate: new Date(scheduledDate),
+      workOrderScheduledDate: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
     });
 
     return res
@@ -1090,4 +904,62 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
   }
+};
+
+// Change workOrderCode format ----------------------------------------------------------
+export const changeWorkOrderCodes = async () => {
+  const jobs = await WorkOrder.find();
+
+  for (const job of jobs) {
+    const parts = job.workOrderCode.split("-");
+    job.workOrderCode = updateDateInWorkOrderCode(
+      parts[0],
+      job.workOrderScheduledDate,
+      parts[1]
+    );
+
+    if (job.workOrderInvoiceNumber) {
+      const newInvoice = new InvoiceModel({
+        invoiceNumber: job.workOrderInvoiceNumber,
+        invoiceLinkedWorkOrder: new ObjectId(job._id),
+        invoiceLinkedCustomer: new ObjectId(job.workOrderCustomerId),
+        invoiceLinkedUnit: new ObjectId(job.workOrderUnitReference),
+        items: job.workOrderChargers.items,
+        serviceCharges: job.workOrderChargers.serviceCharges,
+        labourCharges: job.workOrderChargers.labourCharges,
+        transportCharges: job.workOrderChargers.transportCharges,
+        otherCharges: job.workOrderChargers.otherCharges,
+        discount: job.workOrderChargers.discount,
+        grandNetTotal: job.workOrderChargers.grandNetTotal,
+        grandTotal: job.workOrderChargers.grandTotal,
+      });
+
+      const savedInvoice = await newInvoice.save();
+
+      job.workOrderInvoice = new ObjectId(savedInvoice._id);
+    }
+
+    await job.save();
+  }
+
+  await WorkOrder.updateMany(
+    // Filter to match documents where the fields exist
+    {
+      workOrderInvoiceNumber: { $exists: true },
+      workOrderChargers: { $exists: true },
+      workOrderLinked: { $exists: true },
+      // Add more fields to remove as needed
+    },
+    // Update operation to unset the fields
+    {
+      $unset: {
+        workOrderInvoiceNumber: 1,
+        workOrderChargers: 1,
+        workOrderLinked: 1,
+        // Add more fields to unset as needed
+      },
+    }
+  );
+
+  console.log("Finished Transfering");
 };

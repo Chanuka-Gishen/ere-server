@@ -10,7 +10,7 @@ import {
 } from "../constants/commonConstants.js";
 dotenv.config();
 
-export const generateWorkOrderNumber = (type, sequenceValue) => {
+export const generateWorkOrderNumber = (type, sequenceValue, scheduledDate) => {
   // Set the desired length of the sequence number (e.g., 4 digits for "S0001")
   const sequenceLength = 4;
 
@@ -18,11 +18,33 @@ export const generateWorkOrderNumber = (type, sequenceValue) => {
   const stringValue = sequenceValue.toString();
   const formattedSequence = stringValue.padStart(sequenceLength, "0");
 
+  const date = new Date(scheduledDate);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Adding 1 because getMonth() returns 0-based month
+  const day = String(date.getDate()).padStart(2, "0");
+
+  const formattedDate = `${year}${month}${day}`;
+
   // Convert the first letter of the type to uppercase
   const formattedType = type.charAt(0).toUpperCase();
 
   // Combine the type and formatted sequence to create the work order number
-  const workOrderNumber = `${formattedType}-${formattedSequence}`;
+  const workOrderNumber = `${formattedType}-${formattedDate}-${formattedSequence}`;
+
+  return workOrderNumber;
+};
+
+export const updateDateInWorkOrderCode = (type, scheduledDate, value) => {
+  const date = new Date(scheduledDate);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Adding 1 because getMonth() returns 0-based month
+  const day = String(date.getDate()).padStart(2, "0");
+
+  const formattedDate = `${year}${month}${day}`;
+
+  const workOrderNumber = `${type}-${formattedDate}-${value}`;
 
   return workOrderNumber;
 };

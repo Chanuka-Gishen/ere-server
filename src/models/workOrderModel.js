@@ -8,7 +8,7 @@ import {
   WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
-} from "../../constants/commonConstants.js";
+} from "../constants/commonConstants.js";
 
 const Schema = mongoose.Schema;
 
@@ -180,8 +180,9 @@ const workOrderSchema = new Schema({
     enum: [CREATED_STATUS, COMPLETED_STATUS],
     default: CREATED_STATUS,
   },
-  workOrderInvoiceNumber: {
-    type: String,
+  workOrderInvoice: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Invoice",
     default: null,
   },
   workOrderImages: [imageSchema],
@@ -206,6 +207,14 @@ const workOrderSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  workOrderCreatedAt: {
+    type: Date,
+    default: Date.now(),
+  },
+  workOrderInvoiceNumber: {
+    type: String,
+    default: null,
+  },
   workOrderLinked: {
     isLinked: {
       type: Boolean,
@@ -219,10 +228,6 @@ const workOrderSchema = new Schema({
   workOrderChargers: {
     type: chargersSchema,
     default: null,
-  },
-  workOrderCreatedAt: {
-    type: Date,
-    default: Date.now(),
   },
 });
 

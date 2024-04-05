@@ -3,16 +3,13 @@ import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
 import {
   GetWorkOrdersByUnit,
-  addUpdateWorkOrderChargers,
   createJob,
   deleteFilesFromDrive,
   deleteWorkOrder,
   downloadInvoice,
-  getAllInvoices,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   getTodaysWorkCount,
-  getTotalCostStats,
   getWorkOrders,
   updateWorkOrderDetails,
   updateWorkOrderEmployeeTips,
@@ -70,19 +67,8 @@ workOrderRoutes.put(
   [verifyToken, checkAdmin],
   updateWorkOrderEmployeeTips
 );
-workOrderRoutes.post(
-  "/chargers",
-  [verifyToken, checkAdmin],
-  addUpdateWorkOrderChargers
-);
 workOrderRoutes.get("/download-invoice/:invoiceNo", downloadInvoice);
 workOrderRoutes.post("/today-count", getTodaysWorkCount);
-workOrderRoutes.post("/invoices", [verifyToken, checkAdmin], getAllInvoices);
-workOrderRoutes.post(
-  "/invoices-stats",
-  [verifyToken, checkAdmin],
-  getTotalCostStats
-);
 workOrderRoutes.post(
   "/link-jobs",
   [verifyToken, checkAdmin],

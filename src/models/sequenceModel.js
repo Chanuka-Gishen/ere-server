@@ -5,7 +5,7 @@ import {
   QR_SEQUENCE,
   REPAIR_SEQ,
   SERVICE_SEQ,
-} from "../../constants/commonConstants.js";
+} from "../constants/commonConstants.js";
 
 const Schema = mongoose.Schema;
 

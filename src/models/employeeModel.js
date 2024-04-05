@@ -1,11 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
-import {
-  ADMIN_ROLE,
-  TECHNICIAN_ROLE,
-  HELPER_ROLE,
-} from "../../constants/role.js";
-import { excludeEmployeeFieldsPlugin } from "../../plugin/employeeModelPlugin.js";
+import { ADMIN_ROLE, TECHNICIAN_ROLE, HELPER_ROLE } from "../constants/role.js";
+import { excludeEmployeeFieldsPlugin } from "../plugin/employeeModelPlugin.js";
 
 const Schema = mongoose.Schema;
 
