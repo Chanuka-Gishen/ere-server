@@ -64,7 +64,7 @@ db.once("connected", () => {
   //addSequence();
   //deleteFoldersAndFiles();
 
-  changeWorkOrderCodes();
+  //changeWorkOrderCodes();
 
   // Start your Express server here
   app.listen(port, () => {

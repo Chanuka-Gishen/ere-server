@@ -880,52 +880,52 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
 
 // Change workOrderCode format ----------------------------------------------------------
 export const changeWorkOrderCodes = async () => {
-  const jobs = await WorkOrder.find();
+  const jobs = await WorkOrder.find().limit(0);
 
-  for (const job of jobs) {
-    const parts = job.workOrderCode.split("-");
-    job.workOrderCode = updateDateInWorkOrderCode(
-      parts[0],
-      job.workOrderScheduledDate,
-      parts[1]
-    );
+  // for (const job of jobs) {
+  //   const parts = job.workOrderCode.split("-");
+  //   job.workOrderCode = updateDateInWorkOrderCode(
+  //     parts[0],
+  //     job.workOrderScheduledDate,
+  //     parts[1]
+  //   );
 
-    if (job.workOrderInvoiceNumber) {
-      const newInvoice = new InvoiceModel({
-        invoiceNumber: job.workOrderInvoiceNumber,
-        invoiceLinkedWorkOrder: new ObjectId(job._id),
-        invoiceLinkedCustomer: new ObjectId(job.workOrderCustomerId),
-        invoiceLinkedUnit: new ObjectId(job.workOrderUnitReference),
-        items: job.workOrderChargers.items,
-        serviceCharges: job.workOrderChargers.serviceCharges,
-        labourCharges: job.workOrderChargers.labourCharges,
-        transportCharges: job.workOrderChargers.transportCharges,
-        otherCharges: job.workOrderChargers.otherCharges,
-        discount: job.workOrderChargers.discount,
-        grandNetTotal: job.workOrderChargers.grandNetTotal,
-        grandTotal: job.workOrderChargers.grandTotal,
-      });
+  //   if (job.workOrderInvoiceNumber) {
+  //     const newInvoice = new InvoiceModel({
+  //       invoiceNumber: job.workOrderInvoiceNumber,
+  //       invoiceLinkedWorkOrder: new ObjectId(job._id),
+  //       invoiceLinkedCustomer: new ObjectId(job.workOrderCustomerId),
+  //       invoiceLinkedUnit: new ObjectId(job.workOrderUnitReference),
+  //       items: job.workOrderChargers.items,
+  //       serviceCharges: job.workOrderChargers.serviceCharges,
+  //       labourCharges: job.workOrderChargers.labourCharges,
+  //       transportCharges: job.workOrderChargers.transportCharges,
+  //       otherCharges: job.workOrderChargers.otherCharges,
+  //       discount: job.workOrderChargers.discount,
+  //       grandNetTotal: job.workOrderChargers.grandNetTotal,
+  //       grandTotal: job.workOrderChargers.grandTotal,
+  //     });
 
-      const savedInvoice = await newInvoice.save();
+  //     const savedInvoice = await newInvoice.save();
 
-      job.workOrderInvoice = new ObjectId(savedInvoice._id);
-    }
+  //     job.workOrderInvoice = new ObjectId(savedInvoice._id);
+  //   }
 
-    await job.save();
-  }
+  //   await job.save();
+  // }
 
-  await WorkOrder.updateMany(
-    {
-      workOrderInvoiceNumber: { $exists: true },
-      workOrderChargers: { $exists: true },
-    },
-    {
-      $unset: {
-        workOrderInvoiceNumber: 1,
-        workOrderChargers: 1,
-      },
-    }
-  );
+  // await WorkOrder.updateMany(
+  //   {
+  //     workOrderInvoiceNumber: { $exists: true },
+  //     workOrderChargers: { $exists: true },
+  //   },
+  //   {
+  //     $unset: {
+  //       workOrderInvoiceNumber: 1,
+  //       workOrderChargers: 1,
+  //     },
+  //   }
+  // );
 
   console.log("Finished Transfering");
 };
