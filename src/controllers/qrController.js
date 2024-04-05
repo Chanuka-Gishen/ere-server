@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 
-import { QRCodeModel } from "../models/dao/qrCodeModel.js";
+import { QRCodeModel } from "../models/qrCodeModel.js";
 import { uploadQrCodes } from "../services/googleApi.js";
 import ApiResponse from "../services/ApiResponse.js";
 import {
@@ -13,7 +13,7 @@ import {
   qr_generated,
   success_message,
 } from "../constants/messageConstants.js";
-import ConstantModel from "../models/dao/constantModel.js";
+import ConstantModel from "../models/constantModel.js";
 import { CONST_CODE_QR } from "../constants/commonConstants.js";
 
 export const createBulkQrCodes = async (req, res) => {

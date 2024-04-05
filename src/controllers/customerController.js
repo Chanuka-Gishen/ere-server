@@ -5,7 +5,7 @@ import {
   customer_success_code,
 } from "../constants/statusCodes.js";
 import { customerRegisterSchema } from "../schemas/customerSchema.js";
-import Customer from "../models/dao/customerModel.js";
+import Customer from "../models/customerModel.js";
 import ApiResponse from "../services/ApiResponse.js";
 import {
   customer_exists,
