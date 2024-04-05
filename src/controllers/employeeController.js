@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import bcrypt from "bcrypt";
 
-import Employee from "../models/dao/employeeModel.js";
+import Employee from "../models/employeeModel.js";
 import ApiResponse from "../services/ApiResponse.js";
 import {
   auth_success_code,

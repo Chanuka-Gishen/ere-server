@@ -18,4 +18,5 @@ export const WorkOrderUpdateSchema = Joi.object({
     .valid(CMP_ERE, CMP_SINGER, CMP_SINGER_DIR)
     .required(),
   workOrderInvoiceNumber: Joi.string().allow(null, ""),
+  workOrderLinkedJobs: Joi.array(),
 });

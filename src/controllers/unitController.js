@@ -8,8 +8,8 @@ import {
   qr_error_code,
 } from "../constants/statusCodes.js";
 import { unitAddSchema } from "../schemas/unitAddSchema.js";
-import Unit from "../models/dao/unitModel.js";
-import Customer from "../models/dao/customerModel.js";
+import Unit from "../models/unitModel.js";
+import Customer from "../models/customerModel.js";
 import {
   customer_not_found,
   customer_unit_added,
@@ -23,11 +23,11 @@ import {
   success_message,
 } from "../constants/messageConstants.js";
 import { unitUpdateSchema } from "../schemas/unitUpdateSchema.js";
-import { WorkOrder } from "../models/dao/workOrderModel.js";
+import { WorkOrder } from "../models/workOrderModel.js";
 import { unitDetailsUpdateSchema } from "../schemas/unitDetailsUpdateSchema.js";
-import { QRCodeModel } from "../models/dao/qrCodeModel.js";
+import { QRCodeModel } from "../models/qrCodeModel.js";
 import { unitUpdateQrSchema } from "../schemas/unitUpdateQrSchema.js";
-import AirConditionerModel from "../models/dao/airConditionerModel.js";
+import AirConditionerModel from "../models/airConditionerModel.js";
 
 // Add customer unit
 export const AddCustomerUnit = async (req, res) => {
@@ -372,7 +372,7 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
 
     const workOrders = await WorkOrder.find({
       workOrderUnitReference: unit._id,
-    });
+    }).populate("workOrderInvoice");
 
     return res.status(httpStatus.OK).json(
       ApiResponse.response(customer_success_code, success_message, {
