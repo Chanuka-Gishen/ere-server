@@ -6,7 +6,6 @@ import {
   createJob,
   deleteFilesFromDrive,
   deleteWorkOrder,
-  downloadInvoice,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   getTodaysWorkCount,
@@ -67,7 +66,6 @@ workOrderRoutes.put(
   [verifyToken, checkAdmin],
   updateWorkOrderEmployeeTips
 );
-workOrderRoutes.get("/download-invoice/:invoiceNo", downloadInvoice);
 workOrderRoutes.post("/today-count", getTodaysWorkCount);
 workOrderRoutes.post(
   "/link-jobs",

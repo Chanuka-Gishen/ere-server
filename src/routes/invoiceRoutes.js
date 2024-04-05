@@ -3,6 +3,7 @@ import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
 import {
   addUpdateWorkOrderChargers,
+  downloadInvoice,
   getAllInvoices,
   getTotalCostStats,
   updateInvoiceLinkedToContorller,
@@ -20,6 +21,7 @@ invoiceRoutes.post(
   [verifyToken, checkAdmin],
   updateInvoiceLinkedToContorller
 );
+invoiceRoutes.get("/download-invoice/:id", downloadInvoice);
 invoiceRoutes.post("/invoices", [verifyToken, checkAdmin], getAllInvoices);
 invoiceRoutes.post(
   "/invoices-stats",

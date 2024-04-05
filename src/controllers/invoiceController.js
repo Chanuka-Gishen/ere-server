@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import httpStatus from "http-status";
+import PDFDocument from "pdfkit";
 
 import { WorkOrder } from "../models/workOrderModel.js";
 import ApiResponse from "../services/ApiResponse.js";
@@ -22,6 +23,7 @@ import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { generateInvoiceNumber } from "../services/commonServices.js";
 import { InvoiceModel } from "../models/invoiceModel.js";
 import { InvoiceLinkSchema } from "../schemas/invoiceLinkSchema.js";
+import { generateInvoicePDF } from "../services/pdfServices.js";
 
 // Add / Update Work Order Invoice
 export const addUpdateWorkOrderChargers = async (req, res) => {
@@ -387,6 +389,62 @@ export const getTotalCostStats = async (req, res) => {
       .json(
         ApiResponse.response(workorder_success_code, success_message, result[0])
       );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get invoice download file ---------------------------------- refactor this
+export const downloadInvoice = async (req, res) => {
+  try {
+    const { id } = req.params; // Work Order Id
+
+    const workOrder = await WorkOrder.findById(new ObjectId(id))
+      .populate("workOrderCustomerId")
+      .populate("workOrderUnitReference")
+      .populate("workOrderInvoice");
+
+    if (!workOrder) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    if (!workOrder.workOrderInvoice) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(
+          ApiResponse.error(workorder_error_code, workOrder_invoice_not_created)
+        );
+    }
+
+    // Create a new PDF document
+    const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
+
+    console.log(workOrder.workOrderInvoice.invoiceNumber);
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=${workOrder.workOrderInvoice.invoiceNumber}.pdf`
+    );
+
+    // Stream the PDF buffer to the response
+    doc.pipe(res);
+
+    generateInvoicePDF(
+      doc,
+      workOrder.workOrderCustomerId,
+      workOrder.workOrderUnitReference,
+      workOrder,
+      workOrder.workOrderInvoice
+    );
+
+    doc.end();
   } catch (error) {
     console.log(error);
     return res

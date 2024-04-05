@@ -215,16 +215,12 @@ const workOrderSchema = new Schema({
     type: String,
     default: null,
   },
-  workOrderLinked: {
-    isLinked: {
-      type: Boolean,
-      default: false,
+  workOrderLinked: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "WorkOrder",
     },
-    ordersList: {
-      type: Array,
-      default: [],
-    },
-  },
+  ],
   workOrderChargers: {
     type: chargersSchema,
     default: null,

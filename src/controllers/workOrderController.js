@@ -30,7 +30,6 @@ import { ImageModel, WorkOrder } from "../models/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
-  generateInvoiceNumber,
   generateWorkOrderNumber,
   getSequenceType,
   updateDateInWorkOrderCode,
@@ -56,8 +55,6 @@ import Employee from "../models/employeeModel.js";
 import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
-import { generateInvoicePDF } from "../services/pdfServices.js";
-import PDFDocument from "pdfkit";
 import { jobLinkListFilterSchema } from "../schemas/jobLinkListFilterSchema.js";
 import { InvoiceModel } from "../models/invoiceModel.js";
 
@@ -146,7 +143,6 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrderScheduledDate,
       workOrderFrom,
       workOrderInvoiceNumber,
-      workOrderIsLinked,
       workOrderLinkedJobs,
     } = value;
 
@@ -156,6 +152,29 @@ export const updateWorkOrderDetails = async (req, res) => {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
+    }
+
+    if (workOrderLinkedJobs.length > 0) {
+      const linkedObjectIds = workOrderLinkedJobs.map(
+        (job) => new ObjectId(job._id)
+      );
+
+      console.log(linkedObjectIds);
+      console.log(workOrder._id);
+
+      const workOrderId = new ObjectId(workOrder._id);
+
+      if (!linkedObjectIds.some((id) => id.equals(workOrderId))) {
+        console.log("not include");
+        workOrder.workOrderLinked = [];
+      }
+
+      await WorkOrder.updateMany(
+        { _id: { $in: linkedObjectIds } },
+        {
+          $set: { workOrderLinked: linkedObjectIds },
+        }
+      );
     }
 
     if (
@@ -445,6 +464,10 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
         },
       })
       .populate("workOrderImages.imageUploadedBy")
+      .populate({
+        path: "workOrderLinked",
+        select: "_id workOrderCode workOrderType",
+      })
       .populate("workOrderInvoice");
 
     if (!workOrder) {
@@ -721,60 +744,6 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
   }
 };
 
-// Get invoice download file ---------------------------------- refactor this
-export const downloadInvoice = async (req, res) => {
-  try {
-    const { id } = req.params; // Work Order Id
-
-    const workOrder = await WorkOrder.findById(new ObjectId(id))
-      .populate("workOrderCustomerId")
-      .populate("workOrderUnitReference")
-      .populate("workOrderInvoice");
-
-    if (!workOrder) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
-    }
-
-    if (!workOrder.workOrderInvoice) {
-      return res
-        .status(httpStatus.NOT_FOUND)
-        .json(
-          ApiResponse.error(workorder_error_code, workOrder_invoice_not_created)
-        );
-    }
-
-    // Create a new PDF document
-    const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
-
-    // Set response headers
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename=${invoice.invoiceNumber}.pdf`
-    );
-
-    // Stream the PDF buffer to the response
-    doc.pipe(res);
-
-    generateInvoicePDF(
-      doc,
-      workOrder.workOrderCustomerId,
-      workOrder.workOrderUnitReference,
-      workOrder,
-      workOrder.workOrderInvoice
-    );
-
-    doc.end();
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(httpStatus.INTERNAL_SERVER_ERROR)
-      .json(ApiResponse.error(bad_request_code, error.message));
-  }
-};
-
 // Get the today's scheduled work count
 export const getTodaysWorkCount = async (req, res) => {
   try {
@@ -887,6 +856,9 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
         $gte: startOfDay,
         $lte: endOfDay,
       },
+    }).populate({
+      path: "workOrderLinked",
+      select: "_id workOrderCode workOrderType",
     });
 
     return res
@@ -943,20 +915,14 @@ export const changeWorkOrderCodes = async () => {
   }
 
   await WorkOrder.updateMany(
-    // Filter to match documents where the fields exist
     {
       workOrderInvoiceNumber: { $exists: true },
       workOrderChargers: { $exists: true },
-      workOrderLinked: { $exists: true },
-      // Add more fields to remove as needed
     },
-    // Update operation to unset the fields
     {
       $unset: {
         workOrderInvoiceNumber: 1,
         workOrderChargers: 1,
-        workOrderLinked: 1,
-        // Add more fields to unset as needed
       },
     }
   );

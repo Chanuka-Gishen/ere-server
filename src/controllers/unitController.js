@@ -372,7 +372,7 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
 
     const workOrders = await WorkOrder.find({
       workOrderUnitReference: unit._id,
-    });
+    }).populate("workOrderInvoice");
 
     return res.status(httpStatus.OK).json(
       ApiResponse.response(customer_success_code, success_message, {
