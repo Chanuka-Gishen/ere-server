@@ -2,6 +2,7 @@ import express from "express";
 import {
   deleteUnit,
   getCustomerUnitDetailsFromQrCode,
+  getUnitSavedBrandsAndModelsController,
   getUnitsForCalender,
   removeQrFromUnit,
   updateUnitQrCode,
@@ -16,5 +17,10 @@ unitRoutes.put("/remove-qr-code/:id", removeQrFromUnit);
 unitRoutes.get("/unit-by-qr/:qrCodeName", getCustomerUnitDetailsFromQrCode);
 unitRoutes.delete("/:id", [verifyToken, checkAdmin], deleteUnit);
 unitRoutes.get("/calendar", [verifyToken, checkAdmin], getUnitsForCalender);
+unitRoutes.get(
+  "/select-model",
+  [verifyToken],
+  getUnitSavedBrandsAndModelsController
+);
 
 export default unitRoutes;

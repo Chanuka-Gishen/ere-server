@@ -459,3 +459,21 @@ export const getUnitsForCalender = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+// Get saved unit brands and models
+export const getUnitSavedBrandsAndModelsController = async (req, res) => {
+  try {
+    const result = await AirConditionerModel.find();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(customer_success_code, success_message, result)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
