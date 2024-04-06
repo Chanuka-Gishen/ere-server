@@ -159,14 +159,28 @@ export const updateWorkOrderDetails = async (req, res) => {
         (job) => new ObjectId(job._id)
       );
 
-      console.log(linkedObjectIds);
-      console.log(workOrder._id);
-
       const workOrderId = new ObjectId(workOrder._id);
 
-      if (!linkedObjectIds.some((id) => id.equals(workOrderId))) {
-        console.log("not include");
+      if (
+        linkedObjectIds.length === 1 &&
+        linkedObjectIds[0].equals(workOrderId)
+      ) {
         workOrder.workOrderLinked = [];
+      }
+
+      if (workOrder.workOrderLinked.length > 0) {
+        const deletedIds = workOrder.workOrderLinked.filter(
+          (id) => !linkedObjectIds.includes(id)
+        );
+
+        if (deletedIds.length > 0) {
+          await WorkOrder.updateMany(
+            { _id: { $in: deletedIds } },
+            {
+              $set: { workOrderLinked: [] },
+            }
+          );
+        }
       }
 
       await WorkOrder.updateMany(
