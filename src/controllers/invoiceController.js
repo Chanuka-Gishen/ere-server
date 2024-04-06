@@ -13,6 +13,7 @@ import {
   success_message,
   workOrder_chargers_updated,
   workOrder_not_found,
+  workOrder_not_linked,
 } from "../constants/messageConstants.js";
 import {
   CMP_ERE,
@@ -23,7 +24,10 @@ import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { generateInvoiceNumber } from "../services/commonServices.js";
 import { InvoiceModel } from "../models/invoiceModel.js";
 import { InvoiceLinkSchema } from "../schemas/invoiceLinkSchema.js";
-import { generateInvoicePDF } from "../services/pdfServices.js";
+import {
+  generateInvoicePDF,
+  generateMultipleInvoicePDF,
+} from "../services/pdfServices.js";
 
 // Add / Update Work Order Invoice
 export const addUpdateWorkOrderChargers = async (req, res) => {
@@ -397,7 +401,7 @@ export const getTotalCostStats = async (req, res) => {
   }
 };
 
-// Get invoice download file ---------------------------------- refactor this
+// Get invoice download file
 export const downloadInvoice = async (req, res) => {
   try {
     const { id } = req.params; // Work Order Id
@@ -424,8 +428,6 @@ export const downloadInvoice = async (req, res) => {
     // Create a new PDF document
     const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
 
-    console.log(workOrder.workOrderInvoice.invoiceNumber);
-
     // Set response headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -442,6 +444,97 @@ export const downloadInvoice = async (req, res) => {
       workOrder.workOrderUnitReference,
       workOrder,
       workOrder.workOrderInvoice
+    );
+
+    doc.end();
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const downloadTotalInvoice = async (req, res) => {
+  try {
+    const { id } = req.params; // Work Order Id
+
+    const selectedWorkOrder = await WorkOrder.findById(new ObjectId(id))
+      .populate("workOrderCustomerId")
+      .populate("workOrderUnitReference")
+      .populate("workOrderInvoice")
+      .populate({ path: "workOrderLinked", populate: "workOrderInvoice" });
+
+    if (!selectedWorkOrder) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    if (selectedWorkOrder.workOrderLinked.length === 0) {
+      return res
+        .status(httpStatus.PRECONDITION_FAILED)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_linked));
+    }
+
+    const workOrders = await WorkOrder.find({
+      _id: { $in: selectedWorkOrder.workOrderLinked },
+      workOrderInvoice: { $exists: true, $ne: null },
+    }).populate("workOrderInvoice");
+
+    const invoice = {
+      items: [],
+      serviceCharges: 0,
+      labourCharges: 0,
+      transportCharges: 0,
+      otherCharges: 0,
+      discount: 0,
+      grandTotal: 0,
+    };
+
+    for (const job of workOrders) {
+      // Update items
+      if (job.workOrderInvoice.items) {
+        invoice.items.push(...job.workOrderInvoice.items);
+      }
+
+      // Update serviceCharges
+      invoice.serviceCharges += job.workOrderInvoice.serviceCharges.amount;
+
+      // Update labourCharges
+      invoice.labourCharges += job.workOrderInvoice.labourCharges.amount;
+
+      // Update transportCharges
+      invoice.transportCharges += job.workOrderInvoice.transportCharges.amount;
+
+      // Update otherCharges
+      invoice.otherCharges += job.workOrderInvoice.otherCharges.amount;
+
+      // Update discount
+      invoice.discount += job.workOrderInvoice.discount.amount;
+
+      // Update grandTotal
+      invoice.grandTotal += job.workOrderInvoice.grandTotal;
+    }
+
+    // Create a new PDF document
+    const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=${selectedWorkOrder.workOrderCode}.pdf`
+    );
+
+    // Stream the PDF buffer to the response
+    doc.pipe(res);
+
+    generateMultipleInvoicePDF(
+      doc,
+      selectedWorkOrder.workOrderCustomerId,
+      selectedWorkOrder,
+      invoice
     );
 
     doc.end();

@@ -8,7 +8,13 @@ import {
   workorder_success_code,
   workorder_warning_code,
 } from "../constants/statusCodes.js";
+
 import Unit from "../models/unitModel.js";
+import { ImageModel, WorkOrder } from "../models/workOrderModel.js";
+import Customer from "../models/customerModel.js";
+import Employee from "../models/employeeModel.js";
+import { InvoiceModel } from "../models/invoiceModel.js";
+
 import {
   customer_not_found,
   customer_unit_not_found,
@@ -26,7 +32,6 @@ import {
   workOrder_not_found,
   workOrder_tip_missing,
 } from "../constants/messageConstants.js";
-import { ImageModel, WorkOrder } from "../models/workOrderModel.js";
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
@@ -34,7 +39,6 @@ import {
   getSequenceType,
   updateDateInWorkOrderCode,
 } from "../services/commonServices.js";
-import Customer from "../models/customerModel.js";
 import {
   CMP_ERE,
   CMP_SINGER,
@@ -51,12 +55,10 @@ import {
   deleteDriveFilesAdmin,
   uploadImagesToDrive,
 } from "../services/googleApi.js";
-import Employee from "../models/employeeModel.js";
 import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { jobLinkListFilterSchema } from "../schemas/jobLinkListFilterSchema.js";
-import { InvoiceModel } from "../models/invoiceModel.js";
 
 // Create New Job
 export const createJob = async (req, res) => {
@@ -159,14 +161,28 @@ export const updateWorkOrderDetails = async (req, res) => {
         (job) => new ObjectId(job._id)
       );
 
-      console.log(linkedObjectIds);
-      console.log(workOrder._id);
-
       const workOrderId = new ObjectId(workOrder._id);
 
-      if (!linkedObjectIds.some((id) => id.equals(workOrderId))) {
-        console.log("not include");
+      if (
+        linkedObjectIds.length === 1 &&
+        linkedObjectIds[0].equals(workOrderId)
+      ) {
         workOrder.workOrderLinked = [];
+      }
+
+      if (workOrder.workOrderLinked.length > 0) {
+        const deletedIds = workOrder.workOrderLinked.filter(
+          (id) => !linkedObjectIds.includes(id)
+        );
+
+        if (deletedIds.length > 0) {
+          await WorkOrder.updateMany(
+            { _id: { $in: deletedIds } },
+            {
+              $set: { workOrderLinked: [] },
+            }
+          );
+        }
       }
 
       await WorkOrder.updateMany(

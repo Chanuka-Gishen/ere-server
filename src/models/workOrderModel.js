@@ -45,107 +45,6 @@ const imageSchema = new Schema({
   },
 });
 
-const chargersSchema = new Schema({
-  items: [
-    {
-      item: {
-        default: "",
-        type: String,
-      },
-      itemDescription: {
-        default: "",
-        type: String,
-      },
-      itemQty: {
-        type: Number,
-        default: 1,
-      },
-      itemNetPrice: {
-        type: Number,
-        default: 0,
-      },
-      itemGrossPrice: {
-        type: Number,
-        default: 0,
-      },
-    },
-  ],
-  serviceCharges: {
-    description: {
-      type: String,
-      default: "",
-    },
-    netAmount: {
-      type: Number,
-      default: 0,
-    },
-    amount: {
-      type: Number,
-      default: 0,
-    },
-  },
-  labourCharges: {
-    description: {
-      type: String,
-      default: "",
-    },
-    netAmount: {
-      type: Number,
-      default: 0,
-    },
-    amount: {
-      type: Number,
-      default: 0,
-    },
-  },
-  transportCharges: {
-    description: {
-      type: String,
-      default: "",
-    },
-    netAmount: {
-      type: Number,
-      default: 0,
-    },
-    amount: {
-      type: Number,
-      default: 0,
-    },
-  },
-  otherCharges: {
-    description: {
-      type: String,
-      default: "",
-    },
-    netAmount: {
-      type: Number,
-      default: 0,
-    },
-    amount: {
-      type: Number,
-      default: 0,
-    },
-  },
-  discount: {
-    percentage: {
-      type: Number,
-      default: 0,
-    },
-    amount: {
-      type: Number,
-      default: 0,
-    },
-  },
-  grandNetTotal: {
-    type: Number,
-    default: 0,
-  },
-  grandTotal: {
-    type: Number,
-    default: 0,
-  },
-});
-
 // Work Order Schema
 const workOrderSchema = new Schema({
   workOrderCode: {
@@ -203,6 +102,12 @@ const workOrderSchema = new Schema({
     type: Number,
     default: 0,
   },
+  workOrderLinked: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "WorkOrder",
+    },
+  ],
   workOrderQuotationApproved: {
     type: Boolean,
     default: false,
@@ -210,20 +115,6 @@ const workOrderSchema = new Schema({
   workOrderCreatedAt: {
     type: Date,
     default: Date.now(),
-  },
-  workOrderInvoiceNumber: {
-    type: String,
-    default: null,
-  },
-  workOrderLinked: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "WorkOrder",
-    },
-  ],
-  workOrderChargers: {
-    type: chargersSchema,
-    default: null,
   },
 });
 

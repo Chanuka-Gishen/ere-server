@@ -59,9 +59,9 @@ export const AddCustomerUnit = async (req, res) => {
 
     const newUnit = new Unit({
       unitCustomerId: customer._id,
-      unitBrand,
-      unitModel,
-      unitSerialNo,
+      unitBrand: unitBrand.toUpperCase(),
+      unitModel: unitModel.toUpperCase(),
+      unitSerialNo: unitSerialNo.toUpperCase(),
       unitInstalledDate,
       unitStatus,
     });
@@ -70,7 +70,7 @@ export const AddCustomerUnit = async (req, res) => {
 
     // Check if the brand exists
     let existingBrand = await AirConditionerModel.findOne({
-      brand: unit.unitBrand,
+      brand: unit.unitBrand.trim().toUpperCase(),
     });
 
     if (existingBrand) {
@@ -82,7 +82,7 @@ export const AddCustomerUnit = async (req, res) => {
     } else {
       // If brand doesn't exist, create a new document
       const airConditioner = new AirConditionerModel({
-        brand: unit.unitBrand,
+        brand: unit.unitBrand.trim().toUpperCase(),
         models: [unit.unitModel],
       });
       await airConditioner.save();
@@ -451,6 +451,24 @@ export const getUnitsForCalender = async (req, res) => {
       .status(httpStatus.OK)
       .json(
         ApiResponse.response(customer_success_code, success_message, units)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get saved unit brands and models
+export const getUnitSavedBrandsAndModelsController = async (req, res) => {
+  try {
+    const result = await AirConditionerModel.find();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(customer_success_code, success_message, result)
       );
   } catch (error) {
     console.log(error);

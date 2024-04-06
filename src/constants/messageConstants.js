@@ -35,6 +35,7 @@ export const workOrder_chargers_updated = "Chargers updated";
 export const workOrder_invoice_not_created = "Invoice not created yet";
 export const workOrder_deleted = "WorkOrder Deleted";
 export const workOrder_not_assigned = "Employees not assigned";
+export const workOrder_not_linked = "Multiple invoices not detected";
 
 export const qr_code_name_missing = "QR code namer required";
 export const qr_not_found = "QR code not found";
