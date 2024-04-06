@@ -59,9 +59,9 @@ export const AddCustomerUnit = async (req, res) => {
 
     const newUnit = new Unit({
       unitCustomerId: customer._id,
-      unitBrand,
-      unitModel,
-      unitSerialNo,
+      unitBrand: unitBrand.toUpperCase(),
+      unitModel: unitModel.toUpperCase(),
+      unitSerialNo: unitSerialNo.toUpperCase(),
       unitInstalledDate,
       unitStatus,
     });
@@ -70,7 +70,7 @@ export const AddCustomerUnit = async (req, res) => {
 
     // Check if the brand exists
     let existingBrand = await AirConditionerModel.findOne({
-      brand: unit.unitBrand,
+      brand: unit.unitBrand.trim().toUpperCase(),
     });
 
     if (existingBrand) {
@@ -82,7 +82,7 @@ export const AddCustomerUnit = async (req, res) => {
     } else {
       // If brand doesn't exist, create a new document
       const airConditioner = new AirConditionerModel({
-        brand: unit.unitBrand,
+        brand: unit.unitBrand.trim().toUpperCase(),
         models: [unit.unitModel],
       });
       await airConditioner.save();
