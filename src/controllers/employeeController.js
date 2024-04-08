@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import bcrypt from "bcrypt";
 
 import Employee from "../models/employeeModel.js";
+import { WorkOrder } from "../models/workOrderModel.js";
 import ApiResponse from "../services/ApiResponse.js";
 import {
   auth_success_code,
@@ -360,6 +361,69 @@ export const getAllEmployeeForSelect = async (req, res) => {
       .status(httpStatus.OK)
       .json(
         ApiResponse.response(employee_success_code, success_message, employees)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// From employee Id
+export const getTotalTipsForLastMonth = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get the start date of last month
+    const lastMonthStartDate = new Date();
+    lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 1);
+    lastMonthStartDate.setDate(1);
+    lastMonthStartDate.setHours(0, 0, 0, 0);
+
+    // Get the end date of last month
+    const lastMonthEndDate = new Date();
+    lastMonthEndDate.setDate(0); // Set to last day of previous month
+    lastMonthEndDate.setHours(23, 59, 59, 999);
+
+    // Aggregation pipeline to calculate total tips for last month
+    const result = await WorkOrder.aggregate([
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+          workOrderCompletedDate: {
+            $gte: lastMonthStartDate,
+            $lte: lastMonthEndDate,
+          },
+        },
+      },
+      {
+        $unwind: "$workOrderAssignedEmployees",
+      },
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+          workOrderCompletedDate: {
+            $gte: lastMonthStartDate,
+            $lte: lastMonthEndDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalTips: { $sum: "$workOrderAssignedEmployees.tip.amount" },
+        },
+      },
+    ]);
+
+    // Extract the total tips from the result
+    const totalTips = result.length > 0 ? result[0].totalTips : 0;
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(employee_success_code, success_message, totalTips)
       );
   } catch (error) {
     console.log(error);

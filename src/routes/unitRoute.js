@@ -2,6 +2,7 @@ import express from "express";
 import {
   deleteUnit,
   getCustomerUnitDetailsFromQrCode,
+  getUnitDetails,
   getUnitSavedBrandsAndModelsController,
   getUnitsForCalender,
   removeQrFromUnit,
@@ -12,6 +13,7 @@ import { checkAdmin } from "../middleware/permission.js";
 
 const unitRoutes = express.Router();
 
+unitRoutes.get("/info/:id", [verifyToken], getUnitDetails);
 unitRoutes.put("/update-qr-code", updateUnitQrCode);
 unitRoutes.put("/remove-qr-code/:id", removeQrFromUnit);
 unitRoutes.get("/unit-by-qr/:qrCodeName", getCustomerUnitDetailsFromQrCode);
