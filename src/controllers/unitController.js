@@ -150,6 +150,30 @@ export const updateCustomerUnit = async (req, res) => {
   }
 };
 
+// Get unit details from unitId
+export const getUnitDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const unit = await Unit.findById(new ObjectId(id));
+
+    if (!unit) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(customer_error_code, customer_unit_not_found));
+    }
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(customer_success_code, success_message, unit));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
 // Delete customer unit
 export const deleteUnit = async (req, res) => {
   try {
