@@ -6,6 +6,7 @@ import {
   createJob,
   deleteFilesFromDrive,
   deleteWorkOrder,
+  employeeWorkOrdersController,
   getDetailsOfWorkOrderWithPopulated,
   getEmployeeAssignedWorkOverview,
   getTodaysWorkCount,
@@ -60,6 +61,11 @@ workOrderRoutes.post(
   "/emp-jobs",
   [verifyToken],
   getEmployeeAssignedWorkOverview
+);
+workOrderRoutes.get(
+  "/emp-assigned-jobs/:id",
+  [verifyToken],
+  employeeWorkOrdersController
 );
 workOrderRoutes.put(
   "/tips",

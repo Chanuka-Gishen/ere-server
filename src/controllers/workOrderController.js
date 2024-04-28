@@ -405,7 +405,13 @@ export const getWorkOrders = async (req, res) => {
     const jobs = await WorkOrder.find()
       .sort({ workOrderScheduledDate: 1 })
       .populate("workOrderCustomerId")
-      .populate("workOrderUnitReference")
+      .populate({
+        path: "workOrderUnitReference",
+        populate: {
+          path: "unitQrCode",
+          select: "qrCodeName",
+        },
+      })
       .populate("workOrderInvoice");
 
     return res
@@ -860,18 +866,9 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, customer_not_found));
     }
 
-    const startOfDay = new Date(scheduledDate);
-    startOfDay.setHours(0, 0, 0, 0); // Set time to the start of the day
-
-    const endOfDay = new Date(scheduledDate);
-    endOfDay.setHours(23, 59, 59, 999); // Set time to the end of the day
-
     const workOrders = await WorkOrder.find({
       workOrderCustomerId: new ObjectId(customer._id),
-      workOrderScheduledDate: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
+      workOrderStatus: CREATED_STATUS,
     }).populate({
       path: "workOrderLinked",
       select: "_id workOrderCode workOrderType",
@@ -886,6 +883,185 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
           workOrders
         )
       );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get work orders by assigned employees, filter by date
+export const employeeWorkOrdersController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
+    const filteredDate = req.query.filteredDate;
+
+    const skip = page * limit;
+
+    const pipeline = [
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "workOrderCustomerId",
+          foreignField: "_id",
+          as: "workOrderCustomerId",
+        },
+      },
+      {
+        $lookup: {
+          from: "units",
+          localField: "workOrderUnitReference",
+          foreignField: "_id",
+          as: "workOrderUnitReference",
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          localField: "workOrderInvoice",
+          foreignField: "_id",
+          as: "workOrderInvoice",
+        },
+      },
+      {
+        $unwind: "$workOrderAssignedEmployees",
+      },
+      {
+        $unwind: "$workOrderUnitReference",
+      },
+      {
+        $unwind: "$workOrderInvoice",
+      },
+      {
+        $project: {
+          workOrderCode: 1,
+          workOrderFrom: 1,
+          workOrderCustomerId: { $arrayElemAt: ["$workOrderCustomerId", 0] },
+          workOrderScheduledDate: 1,
+          workOrderCompletedDate: 1,
+          workOrderType: 1,
+          workOrderStatus: 1,
+          workOrderInvoice: 1,
+          workOrderImages: 1,
+          workOrderUnitReference: 1,
+          workOrderEmployeeTip: "$workOrderAssignedEmployees.tip.amount", // Access tip amount
+          workOrderLinked: 1,
+          workOrderQuotationApproved: 1,
+          workOrderCreatedAt: 1,
+        },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ];
+
+    const countPipeline = [
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "workOrderCustomerId",
+          foreignField: "_id",
+          as: "workOrderCustomerId",
+        },
+      },
+      {
+        $lookup: {
+          from: "units",
+          localField: "workOrderUnitReference",
+          foreignField: "_id",
+          as: "workOrderUnitReference",
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          localField: "workOrderInvoice",
+          foreignField: "_id",
+          as: "workOrderInvoice",
+        },
+      },
+      {
+        $unwind: "$workOrderAssignedEmployees",
+      },
+      {
+        $unwind: "$workOrderUnitReference",
+      },
+      {
+        $unwind: "$workOrderInvoice",
+      },
+      {
+        $project: {
+          workOrderCode: 1,
+          workOrderFrom: 1,
+          workOrderCustomerId: { $arrayElemAt: ["$workOrderCustomerId", 0] },
+          workOrderScheduledDate: 1,
+          workOrderCompletedDate: 1,
+          workOrderType: 1,
+          workOrderStatus: 1,
+          workOrderInvoice: 1,
+          workOrderImages: 1,
+          workOrderUnitReference: 1,
+          workOrderEmployeeTip: "$workOrderAssignedEmployees.tip.amount", // Access tip amount
+          workOrderLinked: 1,
+          workOrderQuotationApproved: 1,
+          workOrderCreatedAt: 1,
+        },
+      },
+      {
+        $count: "totalCount",
+      },
+    ];
+
+    let query;
+
+    if (filteredDate) {
+      const filterDate = new Date(filteredDate);
+      const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+
+      pipeline[0].$match = {
+        workOrderCompletedDate: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      };
+
+      countPipeline[0].$match = {
+        workOrderCompletedDate: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      };
+    }
+
+    const workOrders = await WorkOrder.aggregate(pipeline);
+
+    const documentCount = await WorkOrder.aggregate(countPipeline);
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(workorder_success_code, success_message, {
+        workOrders,
+        documentCount:
+          documentCount.length > 0 ? documentCount[0].totalCount : 0,
+      })
+    );
   } catch (error) {
     console.log(error);
     return res
