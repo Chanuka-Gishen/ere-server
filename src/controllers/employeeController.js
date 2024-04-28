@@ -378,12 +378,12 @@ export const getTotalTipsForLastMonth = async (req, res) => {
     // Get the start date of last month
     const lastMonthStartDate = new Date();
     lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 1);
-    lastMonthStartDate.setDate(1);
+    lastMonthStartDate.setDate(2);
     lastMonthStartDate.setHours(0, 0, 0, 0);
 
     // Get the end date of last month
     const lastMonthEndDate = new Date();
-    lastMonthEndDate.setDate(0); // Set to last day of previous month
+    lastMonthEndDate.setDate(2); // Set to last day of previous month
     lastMonthEndDate.setHours(23, 59, 59, 999);
 
     // Aggregation pipeline to calculate total tips for last month
@@ -408,6 +408,45 @@ export const getTotalTipsForLastMonth = async (req, res) => {
             $lte: lastMonthEndDate,
           },
         },
+      },
+      {
+        $group: {
+          _id: null,
+          totalTips: { $sum: "$workOrderAssignedEmployees.tip.amount" },
+        },
+      },
+    ]);
+
+    // Extract the total tips from the result
+    const totalTips = result.length > 0 ? result[0].totalTips : 0;
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(employee_success_code, success_message, totalTips)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Total Tips
+export const empTotalTipsController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Aggregation pipeline to calculate total tips for last month
+    const result = await WorkOrder.aggregate([
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
+      },
+      {
+        $unwind: "$workOrderAssignedEmployees",
       },
       {
         $group: {
