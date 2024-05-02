@@ -936,10 +936,9 @@ export const employeeWorkOrdersController = async (req, res) => {
         $unwind: "$workOrderAssignedEmployees",
       },
       {
-        $unwind: "$workOrderUnitReference",
-      },
-      {
-        $unwind: "$workOrderInvoice",
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
       },
       {
         $project: {
@@ -953,7 +952,7 @@ export const employeeWorkOrdersController = async (req, res) => {
           workOrderInvoice: 1,
           workOrderImages: 1,
           workOrderUnitReference: 1,
-          workOrderEmployeeTip: "$workOrderAssignedEmployees.tip.amount", // Access tip amount
+          workOrderEmployeeTip: "$workOrderAssignedEmployees.tip.amount",
           workOrderLinked: 1,
           workOrderQuotationApproved: 1,
           workOrderCreatedAt: 1,
@@ -1001,10 +1000,9 @@ export const employeeWorkOrdersController = async (req, res) => {
         $unwind: "$workOrderAssignedEmployees",
       },
       {
-        $unwind: "$workOrderUnitReference",
-      },
-      {
-        $unwind: "$workOrderInvoice",
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
       },
       {
         $project: {
@@ -1018,7 +1016,7 @@ export const employeeWorkOrdersController = async (req, res) => {
           workOrderInvoice: 1,
           workOrderImages: 1,
           workOrderUnitReference: 1,
-          workOrderEmployeeTip: "$workOrderAssignedEmployees.tip.amount", // Access tip amount
+          workOrderEmployeeTip: "$workOrderAssignedEmployees.tip.amount",
           workOrderLinked: 1,
           workOrderQuotationApproved: 1,
           workOrderCreatedAt: 1,
@@ -1028,8 +1026,6 @@ export const employeeWorkOrdersController = async (req, res) => {
         $count: "totalCount",
       },
     ];
-
-    let query;
 
     if (filteredDate) {
       const filterDate = new Date(filteredDate);

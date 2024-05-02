@@ -403,10 +403,6 @@ export const getTotalTipsForLastMonth = async (req, res) => {
       {
         $match: {
           "workOrderAssignedEmployees.employee": new ObjectId(id),
-          workOrderCompletedDate: {
-            $gte: lastMonthStartDate,
-            $lte: lastMonthEndDate,
-          },
         },
       },
       {
@@ -447,6 +443,11 @@ export const empTotalTipsController = async (req, res) => {
       },
       {
         $unwind: "$workOrderAssignedEmployees",
+      },
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
       },
       {
         $group: {
