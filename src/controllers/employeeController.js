@@ -370,7 +370,7 @@ export const getAllEmployeeForSelect = async (req, res) => {
   }
 };
 
-// From employee Id
+// From employee Id - last month total tips
 export const getTotalTipsForLastMonth = async (req, res) => {
   try {
     const { id } = req.params;
@@ -429,12 +429,68 @@ export const getTotalTipsForLastMonth = async (req, res) => {
   }
 };
 
+// Get current month total tips
+export const getTotalTipsForCurrentMonth = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get the start date of last month
+    const startDate = new Date();
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Get the end date of last month
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    // Aggregation pipeline to calculate total tips for last month
+    const result = await WorkOrder.aggregate([
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+          workOrderCompletedDate: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+      {
+        $unwind: "$workOrderAssignedEmployees",
+      },
+      {
+        $match: {
+          "workOrderAssignedEmployees.employee": new ObjectId(id),
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalTips: { $sum: "$workOrderAssignedEmployees.tip.amount" },
+        },
+      },
+    ]);
+
+    // Extract the total tips from the result
+    const totalTips = result.length > 0 ? result[0].totalTips : 0;
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(employee_success_code, success_message, totalTips)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
 // Total Tips
 export const empTotalTipsController = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Aggregation pipeline to calculate total tips for last month
     const result = await WorkOrder.aggregate([
       {
         $match: {

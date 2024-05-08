@@ -43,6 +43,8 @@ import {
   CMP_ERE,
   CMP_SINGER,
   CMP_SINGER_DIR,
+  CMP_SINHAGIRI,
+  CMP_SINHAGIRI_DIR,
   COMPLETED_STATUS,
   CREATED_STATUS,
   INVOICE_SEQUENCE,
@@ -195,7 +197,9 @@ export const updateWorkOrderDetails = async (req, res) => {
 
     if (
       workOrder.workOrderFrom === CMP_SINGER ||
-      workOrder.workOrderFrom === CMP_SINGER_DIR
+      workOrder.workOrderFrom === CMP_SINGER_DIR ||
+      workOrder.workOrderFrom === CMP_SINHAGIRI ||
+      workOrder.workOrderFrom === CMP_SINHAGIRI_DIR
     ) {
       if (workOrder.workOrderInvoice) {
         const invoice = await InvoiceModel.findById(

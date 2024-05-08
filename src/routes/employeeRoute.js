@@ -11,6 +11,7 @@ import {
   resetEmployeePwdController,
   getTotalTipsForLastMonth,
   empTotalTipsController,
+  getTotalTipsForCurrentMonth,
 } from "../controllers/employeeController.js";
 import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
@@ -46,6 +47,11 @@ employeeRoutes.get(
   "/tips/:id",
   [verifyToken, checkAdmin],
   getTotalTipsForLastMonth
+);
+employeeRoutes.get(
+  "/tips-current/:id",
+  [verifyToken, checkAdmin],
+  getTotalTipsForCurrentMonth
 );
 employeeRoutes.get(
   "/total-tips/:id",
