@@ -3,6 +3,8 @@ import {
   CMP_ERE,
   CMP_SINGER,
   CMP_SINGER_DIR,
+  CMP_SINHAGIRI,
+  CMP_SINHAGIRI_DIR,
   COMPLETED_STATUS,
   CREATED_STATUS,
   WORK_ORD_INSTALLATION,
@@ -54,7 +56,13 @@ const workOrderSchema = new Schema({
   },
   workOrderFrom: {
     type: String,
-    enum: [CMP_ERE, CMP_SINGER, CMP_SINGER_DIR],
+    enum: [
+      CMP_ERE,
+      CMP_SINGER,
+      CMP_SINGER_DIR,
+      CMP_SINHAGIRI,
+      CMP_SINHAGIRI_DIR,
+    ],
     default: CMP_ERE,
   },
   workOrderCustomerId: {
