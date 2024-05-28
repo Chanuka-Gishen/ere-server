@@ -184,6 +184,8 @@ export const updateWorkOrderDetails = async (req, res) => {
               $set: { workOrderLinked: [] },
             }
           );
+        } else {
+          workOrder.workOrderLinked = [];
         }
       }
 
@@ -872,7 +874,7 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
 
     const workOrders = await WorkOrder.find({
       workOrderCustomerId: new ObjectId(customer._id),
-      workOrderStatus: CREATED_STATUS,
+      //workOrderStatus: CREATED_STATUS,
     }).populate({
       path: "workOrderLinked",
       select: "_id workOrderCode workOrderType",
@@ -902,7 +904,7 @@ export const employeeWorkOrdersController = async (req, res) => {
 
     const page = parseInt(req.query.page);
     const limit = parseInt(req.query.limit);
-    const filteredDate = req.query.filteredDate;
+    const { dateFrom, dateTo } = req.query;
 
     const skip = page * limit;
 
@@ -960,6 +962,11 @@ export const employeeWorkOrdersController = async (req, res) => {
           workOrderLinked: 1,
           workOrderQuotationApproved: 1,
           workOrderCreatedAt: 1,
+        },
+      },
+      {
+        $sort: {
+          workOrderCompletedDate: -1,
         },
       },
       {
@@ -1031,10 +1038,14 @@ export const employeeWorkOrdersController = async (req, res) => {
       },
     ];
 
-    if (filteredDate) {
-      const filterDate = new Date(filteredDate);
-      const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
-      const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+    console.log(dateFrom);
+    console.log(dateTo);
+
+    if (dateFrom && dateTo) {
+      const filterDateFrom = new Date(dateFrom);
+      const filterDateTo = new Date(dateTo);
+      const startOfDay = new Date(filterDateFrom.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(filterDateTo.setHours(23, 59, 59, 999));
 
       pipeline[0].$match = {
         workOrderCompletedDate: {
