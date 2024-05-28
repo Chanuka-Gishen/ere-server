@@ -1038,9 +1038,6 @@ export const employeeWorkOrdersController = async (req, res) => {
       },
     ];
 
-    console.log(dateFrom);
-    console.log(dateTo);
-
     if (dateFrom && dateTo) {
       const filterDateFrom = new Date(dateFrom);
       const filterDateTo = new Date(dateTo);
