@@ -123,8 +123,6 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
         ? grandTotal
         : parseFloat(grandTotal) - parseFloat(discountAmount);
 
-    console.log(items);
-
     invoice.items = items;
     invoice.serviceCharges = serviceCharges;
     invoice.labourCharges = labourCharges;
