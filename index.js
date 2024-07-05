@@ -6,17 +6,8 @@ import morgan from "morgan";
 import mongoose from "mongoose";
 
 import ApiResponse from "./src/services/ApiResponse.js";
-import { createDefaultAdmin } from "./src/controllers/employeeController.js";
 import router from "./src/routes/index.js";
-import { addSequence } from "./src/controllers/sequenceController.js";
-import {
-  deleteFoldersAndFiles,
-  uploadQrCodes,
-} from "./src/services/googleApi.js";
-import {
-  addConstant,
-  createBulkQrCodes,
-} from "./src/controllers/qrController.js";
+import { addConstant } from "./src/controllers/qrController.js";
 
 dotenv.config();
 const app = express();
@@ -59,9 +50,7 @@ db.on("error", (error) => {
 db.once("connected", () => {
   console.log("Connected to MongoDB");
 
-  //createDefaultAdmin();
-  //addSequence();
-  //deleteFoldersAndFiles();
+  addConstant();
 
   // Start your Express server here
   app.listen(port, () => {
