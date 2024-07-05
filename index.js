@@ -7,7 +7,6 @@ import mongoose from "mongoose";
 
 import ApiResponse from "./src/services/ApiResponse.js";
 import router from "./src/routes/index.js";
-import { addConstant } from "./src/controllers/qrController.js";
 
 dotenv.config();
 const app = express();
@@ -49,8 +48,6 @@ db.on("error", (error) => {
 
 db.once("connected", () => {
   console.log("Connected to MongoDB");
-
-  addConstant();
 
   // Start your Express server here
   app.listen(port, () => {
