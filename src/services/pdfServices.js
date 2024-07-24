@@ -1,4 +1,6 @@
 import {
+  CMP_SINGER,
+  CMP_SINGER_DIR,
   CMP_SINHAGIRI,
   CMP_SINHAGIRI_DIR,
 } from "../constants/commonConstants.js";
@@ -18,6 +20,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   };
 
   const logoPath = getExactFilePath("assets/ere-logo.jpg");
+  const abansLogoPath = getExactFilePath("assets/abans.jpg");
 
   // Logo and company information
   doc.image(logoPath, 40, 20, { width: 250 }); // Adjust position and size as needed
@@ -47,8 +50,18 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .fontSize(12)
     .text("erengineersere@gmail.com", 370, 140, { align: "left" });
 
+  if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text("Authorized By", 370, 160, { align: "left" });
+    doc.image(abansLogoPath, 450, 160, { width: 80 });
+    incrementYAndCheck(40);
+  } else {
+    incrementYAndCheck();
+  }
+
   // Divider
-  incrementYAndCheck();
   doc.moveTo(50, y).lineTo(550, y).stroke();
 
   if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
@@ -268,6 +281,7 @@ export const generateMultipleInvoicePDF = (
   };
 
   const logoPath = getExactFilePath("assets/ere-logo.jpg");
+  const abansLogoPath = getExactFilePath("assets/abans.jpg");
 
   // Logo and company information
   doc.image(logoPath, 40, 20, { width: 250 }); // Adjust position and size as needed
@@ -297,8 +311,18 @@ export const generateMultipleInvoicePDF = (
     .fontSize(12)
     .text("erengineersere@gmail.com", 370, 140, { align: "left" });
 
+  if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text("Authorized By", 370, 160, { align: "left" });
+    doc.image(abansLogoPath, 450, 160, { width: 80 });
+    incrementYAndCheck(40);
+  } else {
+    incrementYAndCheck();
+  }
+
   // Divider
-  incrementYAndCheck();
   doc.moveTo(50, y).lineTo(550, y).stroke();
 
   if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
