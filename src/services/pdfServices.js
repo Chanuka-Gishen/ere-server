@@ -51,11 +51,12 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     .text("erengineersere@gmail.com", 370, 140, { align: "left" });
 
   if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
+    doc.image(abansLogoPath, 50, 157, { width: 100 });
     doc
       .font("Helvetica")
       .fontSize(12)
-      .text("Authorized By", 370, 160, { align: "left" });
-    doc.image(abansLogoPath, 450, 160, { width: 80 });
+      .text("Authorized Agent", 160, 160, { align: "left" });
+
     incrementYAndCheck(40);
   } else {
     incrementYAndCheck();
@@ -63,106 +64,166 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
 
   // Divider
   doc.moveTo(50, y).lineTo(550, y).stroke();
+  incrementYAndCheck(10);
 
   if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
-    incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(14).text("Singhagiri (Pvt) Ltd", 50, y);
-  }
+    incrementYAndCheck(30);
+    // Bill To, Unit Reference, JobCode#, Invoice#, Completed Date#
 
-  // Bill To and Unit Reference
-  // JobCode#, Invoice#, Completed Date#
-  incrementYAndCheck(30);
-  doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Job Code #", 420, y, { align: "right" });
+    doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
+    doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Job Code #", 420, y, { align: "right" });
 
-  incrementYAndCheck();
-  doc.font("Helvetica").fontSize(12).text(customer.customerName, 50, y);
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text(workOrder.workOrderCode, 420, y, { align: "right" });
-
-  if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
-    incrementYAndCheck();
-    doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 50, y);
+    doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
 
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(workOrder.workOrderCode, 420, y, { align: "right" });
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
-    incrementYAndCheck();
+
     doc
       .font("Helvetica")
       .fontSize(12)
       .text(
         customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
-        50,
+        200,
         y
+      );
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Invoice No #", 420, y, { align: "right" });
+
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(invoice.invoiceNumber, 420, y, { align: "right" });
+
+    incrementYAndCheck();
+
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(`${unit.unitBrand}-${unit.unitModel}-${unit.unitSerialNo}`, 50, y);
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+
+      .text("Completed Date #", 420, y, { align: "right" });
+
+    incrementYAndCheck();
+
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        workOrder.workOrderCompletedDate
+          ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
+        420,
+        y,
+        { align: "right" }
+      );
+  } else {
+    // ERE, Singer Direct, Singhagiri Direct
+    // Bill To , Unit Reference, JobCode#, Invoice#, Completed Date#
+
+    doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
+    doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Job Code #", 420, y, { align: "right" });
+
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
+        200,
+        y
+      );
+
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(workOrder.workOrderCode, 420, y, { align: "right" });
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Invoice No #", 420, y, { align: "right" });
+    incrementYAndCheck();
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(`${unit.unitBrand}-${unit.unitModel}-${unit.unitSerialNo}`, 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(invoice.invoiceNumber, 420, y, { align: "right" });
+
+    incrementYAndCheck();
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Completed Date #", 420, y, { align: "right" });
+
+    incrementYAndCheck();
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        workOrder.workOrderCompletedDate
+          ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
+        420,
+        y,
+        { align: "right" }
       );
   }
 
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Invoice No #", 420, y, { align: "right" });
+  if (![CMP_SINHAGIRI, CMP_SINGER].includes(workOrder.workOrderFrom)) {
+    // Divider
+    incrementYAndCheck();
+    doc.moveTo(50, y).lineTo(550, y).stroke();
 
-  incrementYAndCheck();
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text(invoice.invoiceNumber, 420, y, { align: "right" });
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text(`${unit.unitBrand}-${unit.unitModel}`, 50, y);
-
-  incrementYAndCheck();
-  doc.font("Helvetica").fontSize(12).text(`${unit.unitSerialNo}`, 50, y);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Completed Date #", 420, y, { align: "right" });
-
-  incrementYAndCheck();
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text(
-      workOrder.workOrderCompletedDate
-        ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })
-        : "-",
-      420,
-      y,
-      { align: "right" }
-    );
-
-  // Divider
-  incrementYAndCheck();
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Bank account details", 50, y);
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Bank name", 50, y);
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text("Nations Trust Bank - Moratuwa", 200, y);
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Account holder name", 50, y);
-  doc.font("Helvetica").fontSize(12).text("ER Engineers", 200, y);
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Account number", 50, y);
-  doc.font("Helvetica").fontSize(12).text("014212025778", 200, y);
+    incrementYAndCheck(10);
+    doc.font("Helvetica-Bold").fontSize(12).text("Bank account details", 50, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Bank name", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text("Nations Trust Bank - Moratuwa", 200, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Account holder name", 50, y);
+    doc.font("Helvetica").fontSize(12).text("ER Engineers", 200, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Account number", 50, y);
+    doc.font("Helvetica").fontSize(12).text("014212025778", 200, y);
+  }
 
   // Divider
   incrementYAndCheck();
@@ -312,11 +373,12 @@ export const generateMultipleInvoicePDF = (
     .text("erengineersere@gmail.com", 370, 140, { align: "left" });
 
   if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
+    doc.image(abansLogoPath, 50, 157, { width: 100 });
     doc
       .font("Helvetica")
       .fontSize(12)
-      .text("Authorized By", 370, 160, { align: "left" });
-    doc.image(abansLogoPath, 450, 160, { width: 80 });
+      .text("Authorized Agent", 160, 160, { align: "left" });
+
     incrementYAndCheck(40);
   } else {
     incrementYAndCheck();
@@ -324,87 +386,108 @@ export const generateMultipleInvoicePDF = (
 
   // Divider
   doc.moveTo(50, y).lineTo(550, y).stroke();
+  incrementYAndCheck(10);
 
   if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
-    incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(14).text("Singhagiri (Pvt) Ltd", 50, y);
-  }
+    // Bill To and Unit Reference
+    incrementYAndCheck(30);
+    doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
+    doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+    // Completed Date#
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Completed Date #", 420, y, { align: "right" });
 
-  // Bill To and Unit Reference
-  incrementYAndCheck(30);
-  doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
-  // Completed Date#
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .text("Completed Date #", 420, y, { align: "right" });
-
-  incrementYAndCheck();
-  doc.font("Helvetica").fontSize(12).text(customer.customerName, 50, y);
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text(
-      workOrder.workOrderCompletedDate
-        ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })
-        : "-",
-      420,
-      y,
-      { align: "right" }
-    );
-
-  if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
-    incrementYAndCheck();
-    doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 50, y);
+    doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        workOrder.workOrderCompletedDate
+          ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
+        420,
+        y,
+        { align: "right" }
+      );
 
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
-    incrementYAndCheck();
     doc
       .font("Helvetica")
       .fontSize(12)
       .text(
         customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
-        50,
+        200,
         y
+      );
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(`${workOrder.workOrderLinked.length} Units`, 200, y);
+  } else {
+    // Bill To, Unit Reference, Completed Date#
+    doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
+    doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("Completed Date #", 420, y, { align: "right" });
+
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(`${workOrder.workOrderLinked.length} Units`, 200, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        workOrder.workOrderCompletedDate
+          ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
+        420,
+        y,
+        { align: "right" }
       );
   }
 
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
-  incrementYAndCheck();
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text(`${workOrder.workOrderLinked.length} Units`, 50, y);
+  if (![CMP_SINHAGIRI, CMP_SINGER].includes(workOrder.workOrderFrom)) {
+    // Divider
+    incrementYAndCheck();
+    doc.moveTo(50, y).lineTo(550, y).stroke();
 
-  // Divider
-  incrementYAndCheck();
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Bank account details", 50, y);
-
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Bank name", 50, y);
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text("Nations Trust Bank - Moratuwa", 200, y);
-
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Account holder name", 50, y);
-  doc.font("Helvetica").fontSize(12).text("ER Engineers", 200, y);
-
-  incrementYAndCheck();
-  doc.font("Helvetica-Bold").fontSize(12).text("Account number", 50, y);
-  doc.font("Helvetica").fontSize(12).text("014212025778", 200, y);
+    incrementYAndCheck(10);
+    doc.font("Helvetica-Bold").fontSize(12).text("Bank account details", 50, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Bank name", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text("Nations Trust Bank - Moratuwa", 200, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Account holder name", 50, y);
+    doc.font("Helvetica").fontSize(12).text("ER Engineers", 200, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Account number", 50, y);
+    doc.font("Helvetica").fontSize(12).text("014212025778", 200, y);
+  }
 
   // Divider
   incrementYAndCheck();
