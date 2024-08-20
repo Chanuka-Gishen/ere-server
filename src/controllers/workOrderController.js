@@ -35,6 +35,7 @@ import {
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
+  generateInvoiceNumber,
   generateWorkOrderNumber,
   getSequenceType,
   updateDateInWorkOrderCode,
@@ -117,7 +118,23 @@ export const createJob = async (req, res) => {
       workOrderScheduledDate: new Date(workOrderScheduledDate),
     });
 
-    await newJob.save();
+    const savedJob = await newJob.save();
+
+    await updateSequenceValue(INVOICE_SEQUENCE);
+    const sequenceValueInv = await getSequenceValue(INVOICE_SEQUENCE);
+
+    const newInvoice = new InvoiceModel({
+      invoiceNumber: generateInvoiceNumber(sequenceValueInv),
+      invoiceLinkedWorkOrder: new ObjectId(savedJob._id),
+      invoiceLinkedCustomer: new ObjectId(savedJob.workOrderCustomerId),
+      invoiceLinkedUnit: new ObjectId(savedJob.workOrderUnitReference),
+    });
+
+    const savedInvoice = await newInvoice.save();
+
+    savedJob.workOrderInvoice = new ObjectId(savedInvoice._id);
+
+    await savedJob.save();
 
     return res
       .status(httpStatus.CREATED)
@@ -143,11 +160,13 @@ export const updateWorkOrderDetails = async (req, res) => {
 
     const {
       _id,
+      workOrderCodeSub,
       workOrderType,
       workOrderScheduledDate,
       workOrderFrom,
       workOrderInvoiceNumber,
       workOrderLinkedJobs,
+      workOrderLinkedInvoiceNo,
     } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(_id));
@@ -157,6 +176,8 @@ export const updateWorkOrderDetails = async (req, res) => {
         .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
+
+    let linkedInvoiceNo = workOrderLinkedInvoiceNo;
 
     if (workOrderLinkedJobs.length > 0) {
       const linkedObjectIds = workOrderLinkedJobs.map(
@@ -177,31 +198,86 @@ export const updateWorkOrderDetails = async (req, res) => {
           (id) => !linkedObjectIds.includes(id)
         );
 
+        // Check existing Links and get the common invoice number
+        const existingObjectIds = workOrder.workOrderLinked.map(
+          (id) => new ObjectId(id)
+        );
+
+        // Fetch the documents from MongoDB
+        const invoices = await WorkOrder.find({
+          _id: { $in: existingObjectIds },
+        }).select("workOrderLinkedInvoiceNo"); // Only select the workOrderLinkedInvoiceNo field
+
+        // Extract the invoiceNo fields
+        const invoiceNos = invoices.map(
+          (invoice) => invoice.workOrderLinkedInvoiceNo
+        );
+
+        // Check if all invoiceNo fields are equal
+        const allEqual = invoiceNos.every(
+          (invoiceNo) => invoiceNo === invoiceNos[0]
+        );
+
+        if (
+          allEqual &&
+          [CMP_ERE, CMP_SINGER_DIR, CMP_SINHAGIRI_DIR].includes(
+            workOrder.workOrderFrom
+          )
+        ) {
+          if (invoiceNos[0] === null) {
+            await updateSequenceValue(INVOICE_SEQUENCE);
+            const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+
+            linkedInvoiceNo = generateInvoiceNumber(sequenceValue);
+          } else {
+            linkedInvoiceNo = invoiceNos[0];
+          }
+        }
+
         if (deletedIds.length > 0) {
           await WorkOrder.updateMany(
             { _id: { $in: deletedIds } },
             {
-              $set: { workOrderLinked: [] },
+              $set: { workOrderLinked: [], workOrderLinkedInvoiceNo: null },
             }
           );
         } else {
           workOrder.workOrderLinked = [];
+          workOrder.workOrderLinkedInvoiceNo = null;
+        }
+      } else {
+        // Create Invoice number
+        if ([CMP_SINGER, CMP_SINHAGIRI].includes(workOrder.workOrderFrom)) {
+          linkedInvoiceNo = workOrderLinkedInvoiceNo;
+        } else {
+          await updateSequenceValue(INVOICE_SEQUENCE);
+          const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+
+          linkedInvoiceNo = generateInvoiceNumber(sequenceValue);
         }
       }
 
       await WorkOrder.updateMany(
         { _id: { $in: linkedObjectIds } },
         {
-          $set: { workOrderLinked: linkedObjectIds },
+          $set: {
+            workOrderLinked: linkedObjectIds,
+            workOrderLinkedInvoiceNo: linkedInvoiceNo,
+          },
         }
       );
+
+      console.log(linkedInvoiceNo);
+    }
+
+    // Add Sub Job Number
+    if ([CMP_SINGER, CMP_SINHAGIRI].includes(workOrderFrom)) {
+      workOrder.workOrderCodeSub = workOrderCodeSub;
     }
 
     if (
       workOrder.workOrderFrom === CMP_SINGER ||
-      workOrder.workOrderFrom === CMP_SINGER_DIR ||
-      workOrder.workOrderFrom === CMP_SINHAGIRI ||
-      workOrder.workOrderFrom === CMP_SINHAGIRI_DIR
+      workOrder.workOrderFrom === CMP_SINHAGIRI
     ) {
       if (workOrder.workOrderInvoice) {
         const invoice = await InvoiceModel.findById(
