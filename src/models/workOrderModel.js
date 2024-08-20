@@ -54,6 +54,10 @@ const workOrderSchema = new Schema({
     unique: true,
     required: true,
   },
+  workOrderCodeSub: {
+    type: String,
+    default: null,
+  },
   workOrderFrom: {
     type: String,
     enum: [
@@ -116,6 +120,10 @@ const workOrderSchema = new Schema({
       ref: "WorkOrder",
     },
   ],
+  workOrderLinkedInvoiceNo: {
+    type: String,
+    default: null,
+  },
   workOrderQuotationApproved: {
     type: Boolean,
     default: false,

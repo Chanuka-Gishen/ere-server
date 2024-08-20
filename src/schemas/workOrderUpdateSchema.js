@@ -17,8 +17,16 @@ export const WorkOrderUpdateSchema = Joi.object({
     .required(),
   workOrderScheduledDate: Joi.date().required(),
   workOrderFrom: Joi.string()
-    .valid(CMP_ERE, CMP_SINGER, CMP_SINHAGIRI, CMP_SINHAGIRI_DIR)
+    .valid(
+      CMP_ERE,
+      CMP_SINGER,
+      CMP_SINGER_DIR,
+      CMP_SINHAGIRI,
+      CMP_SINHAGIRI_DIR
+    )
     .required(),
+  workOrderCodeSub: Joi.string().allow(null, ""),
   workOrderInvoiceNumber: Joi.string().allow(null, ""),
   workOrderLinkedJobs: Joi.array(),
+  workOrderLinkedInvoiceNo: Joi.string().allow(null, ""),
 });

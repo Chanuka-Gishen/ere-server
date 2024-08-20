@@ -17,6 +17,8 @@ import {
 } from "../constants/messageConstants.js";
 import {
   CMP_ERE,
+  CMP_SINGER_DIR,
+  CMP_SINHAGIRI_DIR,
   COMPLETED_STATUS,
   INVOICE_SEQUENCE,
 } from "../constants/commonConstants.js";
@@ -52,7 +54,11 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
     } else {
       let invoiceNumber = null;
 
-      if (workOrder.workOrderFrom === CMP_ERE) {
+      if (
+        [CMP_ERE, CMP_SINGER_DIR, CMP_SINHAGIRI_DIR].includes(
+          workOrder.workOrderFrom
+        )
+      ) {
         await updateSequenceValue(INVOICE_SEQUENCE);
         const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
 

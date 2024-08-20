@@ -27,28 +27,28 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   doc
     .font("Helvetica-Bold")
     .fontSize(24)
-    .text("E R Engineers", 370, 30, { align: "left" });
+    .text("ER ENGINEERS", 350, 30, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("No: 70/1A,, Koralawella Rd,", 370, 60, {
+    .text("No: 70/1A,, Koralawella Rd,", 350, 60, {
       align: "left",
     })
-    .text("Koralawella, Moratuwa.", 370, 80, {
+    .text("Koralawella, Moratuwa.", 350, 80, {
       align: "left",
     });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0112645675 (WorkShop)", 370, 100, { align: "left" });
+    .text("0112645675 (WorkShop)", 350, 100, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0773878080 | 0716092000", 370, 120, { align: "left" });
+    .text("0773878080 | 0716092000", 350, 120, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("erengineersere@gmail.com", 370, 140, { align: "left" });
+    .text("erengineersere@gmail.com", 350, 140, { align: "left" });
 
   if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
     doc.image(abansLogoPath, 50, 157, { width: 100 });
@@ -67,43 +67,64 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   incrementYAndCheck(10);
 
   if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
-    doc.font("Helvetica-Bold").fontSize(14).text("Singhagiri (Pvt) Ltd", 50, y);
-    incrementYAndCheck(30);
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(14)
+        .text("Singhagiri (Pvt) Ltd", 50, y);
+      incrementYAndCheck(30);
+    }
+
     // Bill To, Unit Reference, JobCode#, Invoice#, Completed Date#
 
     doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
-    doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI) {
+      doc.font("Helvetica").fontSize(12).text("Singhagiri (Pvt) Ltd", 200, y);
+    } else {
+      doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+    }
+
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
       .text("Job Code #", 420, y, { align: "right" });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
-    doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
+
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
+      doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
+    }
 
     doc
       .font("Helvetica")
       .fontSize(12)
       .text(workOrder.workOrderCode, 420, y, { align: "right" });
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
 
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(
-        customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
-        200,
-        y
-      );
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
+
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
+          200,
+          y
+        );
+    }
+
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
       .text("Invoice No #", 420, y, { align: "right" });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+    }
+
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -111,33 +132,39 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
 
     incrementYAndCheck();
 
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(`${unit.unitBrand}-${unit.unitModel}-${unit.unitSerialNo}`, 50, y);
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(12)
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          `${unit.unitBrand}-${unit.unitModel}-${unit.unitSerialNo}`,
+          50,
+          y
+        );
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(12)
 
-      .text("Completed Date #", 420, y, { align: "right" });
+        .text("Completed Date #", 420, y, { align: "right" });
 
-    incrementYAndCheck();
+      incrementYAndCheck();
 
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(
-        workOrder.workOrderCompletedDate
-          ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "-",
-        420,
-        y,
-        { align: "right" }
-      );
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          workOrder.workOrderCompletedDate
+            ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "-",
+          420,
+          y,
+          { align: "right" }
+        );
+    }
   } else {
     // ERE, Singer Direct, Singhagiri Direct
     // Bill To , Unit Reference, JobCode#, Invoice#, Completed Date#
@@ -226,11 +253,11 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   }
 
   // Divider
-  incrementYAndCheck();
+  //incrementYAndCheck();
   doc.moveTo(50, y).lineTo(550, y).stroke();
 
   // Table headers
-  incrementYAndCheck();
+  incrementYAndCheck(10);
   doc
     .font("Helvetica-Bold")
     .fontSize(11)
@@ -244,7 +271,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   doc.moveTo(50, y).lineTo(550, y).stroke();
 
   // Table rows
-  incrementYAndCheck(30);
+  incrementYAndCheck();
   invoice.items.forEach((item) => {
     doc
       .font("Helvetica")
@@ -263,61 +290,79 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   //y += 20;
 
   // Service Chargers
-  doc.font("Helvetica-Bold").fontSize(11).text("Service Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.serviceCharges.amount), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.serviceCharges.amount > 0) {
+    doc.font("Helvetica-Bold").fontSize(11).text("Service Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.serviceCharges.amount), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    y = incrementYAndCheck(30);
+  }
 
   // Labour Chargers
-  doc.font("Helvetica-Bold").fontSize(12).text("Labour Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.labourCharges.amount), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.labourCharges.amount > 0) {
+    doc.font("Helvetica-Bold").fontSize(12).text("Labour Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.labourCharges.amount), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    y = incrementYAndCheck(30);
+  }
 
   // Transport Chargers
-  doc.font("Helvetica-Bold").fontSize(12).text("Transport Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.transportCharges.amount), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.transportCharges.amount > 0) {
+    doc.font("Helvetica-Bold").fontSize(12).text("Transport Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.transportCharges.amount), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    y = incrementYAndCheck(30);
+  }
 
   // Other Chargers
-  doc.font("Helvetica-Bold").fontSize(12).text("Other Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.otherCharges.amount), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.otherCharges.amount > 0) {
+    doc.font("Helvetica-Bold").fontSize(12).text("Other Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.otherCharges.amount), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    y = incrementYAndCheck(30);
+  }
 
   // Discount
-  doc.font("Helvetica-Bold").fontSize(11).text("Discount", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(`${invoice.discount.percentage} %`, 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.discount.percentage > 0) {
+    doc.font("Helvetica-Bold").fontSize(11).text("Discount", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(`${invoice.discount.percentage} %`, 450, y, {
+        align: "right",
+        width: 100,
+      });
+    y = incrementYAndCheck(30);
+  }
 
   // Grand Total
   doc.font("Helvetica-Bold").fontSize(12).text("Grand Total", 250, y);
   doc
     .font("Helvetica-Bold")
     .fontSize(11)
-    .text(formatCurrency(invoice.grandTotal), 450, y, { align: "right" });
+    .text(formatCurrency(invoice.grandTotal), 450, y, {
+      align: "right",
+      width: 100,
+    });
 
   // Return the stream
   return doc;
@@ -349,28 +394,28 @@ export const generateMultipleInvoicePDF = (
   doc
     .font("Helvetica-Bold")
     .fontSize(24)
-    .text("E R Engineers", 370, 30, { align: "left" });
+    .text("ER ENGINEERS", 350, 30, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("No: 70/1A,, Koralawella Rd,", 370, 60, {
+    .text("No: 70/1A,, Koralawella Rd,", 350, 60, {
       align: "left",
     })
-    .text("Koralawella, Moratuwa.", 370, 80, {
+    .text("Koralawella, Moratuwa.", 350, 80, {
       align: "left",
     });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0112645675 (WorkShop)", 370, 100, { align: "left" });
+    .text("0112645675 (WorkShop)", 350, 100, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0773878080 | 0716092000", 370, 120, { align: "left" });
+    .text("0773878080 | 0716092000", 350, 120, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("erengineersere@gmail.com", 370, 140, { align: "left" });
+    .text("erengineersere@gmail.com", 350, 140, { align: "left" });
 
   if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
     doc.image(abansLogoPath, 50, 157, { width: 100 });
@@ -389,52 +434,88 @@ export const generateMultipleInvoicePDF = (
   incrementYAndCheck(10);
 
   if ([CMP_SINHAGIRI, CMP_SINHAGIRI_DIR].includes(workOrder.workOrderFrom)) {
-    doc.font("Helvetica-Bold").fontSize(14).text("Singhagiri (Pvt) Ltd", 50, y);
-    // Bill To and Unit Reference
-    incrementYAndCheck(30);
+    // 1
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(14)
+        .text("Singhagiri (Pvt) Ltd", 50, y);
+      incrementYAndCheck(30);
+    }
+
+    // Bill To, Unit Reference, JobCode#, Invoice#, Completed Date#
+
     doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
-    doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
-    // Completed Date#
+
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI) {
+      doc.font("Helvetica").fontSize(12).text("Singhagiri (Pvt) Ltd", 200, y);
+    } else {
+      doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
+    }
+
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
-      .text("Completed Date #", 420, y, { align: "right" });
-
+      .text("Invoice No #", 420, y, { align: "right" });
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
-    doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
+
+    // 2
     doc
       .font("Helvetica")
       .fontSize(12)
       .text(
-        workOrder.workOrderCompletedDate
-          ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "-",
+        workOrder.workOrderLinkedInvoiceNo
+          ? workOrder.workOrderLinkedInvoiceNo
+          : " - ",
+
         420,
         y,
         { align: "right" }
       );
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
+      doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
+      doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
 
-    incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(
-        customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
-        200,
-        y
-      );
-    incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(`${workOrder.workOrderLinked.length} Units`, 200, y);
+      incrementYAndCheck();
+
+      // 3
+
+      doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
+          200,
+          y
+        );
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .text("Completed Date #", 420, y, { align: "right" });
+
+      incrementYAndCheck();
+      doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(`${workOrder.workOrderLinked.length} Units`, 200, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          workOrder.workOrderCompletedDate
+            ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "-",
+          420,
+          y,
+          { align: "right" }
+        );
+    }
   } else {
     // Bill To, Unit Reference, Completed Date#
     doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
@@ -494,7 +575,7 @@ export const generateMultipleInvoicePDF = (
   doc.moveTo(50, y).lineTo(550, y).stroke();
 
   // Table headers
-  incrementYAndCheck();
+  incrementYAndCheck(10);
   doc
     .font("Helvetica-Bold")
     .fontSize(11)
@@ -527,44 +608,56 @@ export const generateMultipleInvoicePDF = (
   //y += 20;
 
   // Service Chargers
-  doc.font("Helvetica-Bold").fontSize(11).text("Service Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.serviceCharges), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.serviceCharges > 0) {
+    doc.font("Helvetica-Bold").fontSize(11).text("Service Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.serviceCharges), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    incrementYAndCheck();
+  }
 
   // Labour Chargers
-  doc.font("Helvetica-Bold").fontSize(12).text("Labour Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.labourCharges), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.labourCharges > 0) {
+    doc.font("Helvetica-Bold").fontSize(12).text("Labour Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.labourCharges), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    incrementYAndCheck();
+  }
 
   // Transport Chargers
-  doc.font("Helvetica-Bold").fontSize(12).text("Transport Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.transportCharges), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.transportCharges > 0) {
+    doc.font("Helvetica-Bold").fontSize(12).text("Transport Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.transportCharges), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    incrementYAndCheck();
+  }
 
   // Other Chargers
-  doc.font("Helvetica-Bold").fontSize(12).text("Other Chargers", 250, y);
-  doc
-    .font("Helvetica")
-    .fontSize(11)
-    .text(formatCurrency(invoice.otherCharges), 450, y, {
-      align: "right",
-    });
-  y = incrementYAndCheck(30);
+  if (invoice.otherCharges > 0) {
+    doc.font("Helvetica-Bold").fontSize(12).text("Other Chargers", 250, y);
+    doc
+      .font("Helvetica")
+      .fontSize(11)
+      .text(formatCurrency(invoice.otherCharges), 450, y, {
+        align: "right",
+        width: 100,
+      });
+    incrementYAndCheck();
+  }
 
   // Discount
   // doc.font("Helvetica-Bold").fontSize(11).text("Discount", 250, y);
@@ -581,7 +674,10 @@ export const generateMultipleInvoicePDF = (
   doc
     .font("Helvetica-Bold")
     .fontSize(11)
-    .text(formatCurrency(invoice.grandTotal), 450, y, { align: "right" });
+    .text(formatCurrency(invoice.grandTotal), 450, y, {
+      align: "right",
+      width: 100,
+    });
 
   // Return the stream
   return doc;
