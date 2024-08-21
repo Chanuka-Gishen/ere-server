@@ -166,7 +166,6 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrderFrom,
       workOrderInvoiceNumber,
       workOrderLinkedJobs,
-      workOrderLinkedInvoiceNo,
     } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(_id));
@@ -177,7 +176,7 @@ export const updateWorkOrderDetails = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    let linkedInvoiceNo = workOrderLinkedInvoiceNo;
+    let linkedInvoiceNo = null;
 
     if (workOrderLinkedJobs.length > 0) {
       const linkedObjectIds = workOrderLinkedJobs.map(
@@ -218,12 +217,7 @@ export const updateWorkOrderDetails = async (req, res) => {
           (invoiceNo) => invoiceNo === invoiceNos[0]
         );
 
-        if (
-          allEqual &&
-          [CMP_ERE, CMP_SINGER_DIR, CMP_SINHAGIRI_DIR].includes(
-            workOrder.workOrderFrom
-          )
-        ) {
+        if (allEqual) {
           if (invoiceNos[0] === null) {
             await updateSequenceValue(INVOICE_SEQUENCE);
             const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
@@ -245,16 +239,6 @@ export const updateWorkOrderDetails = async (req, res) => {
           workOrder.workOrderLinked = [];
           workOrder.workOrderLinkedInvoiceNo = null;
         }
-      } else {
-        // Create Invoice number
-        if ([CMP_SINGER, CMP_SINHAGIRI].includes(workOrder.workOrderFrom)) {
-          linkedInvoiceNo = workOrderLinkedInvoiceNo;
-        } else {
-          await updateSequenceValue(INVOICE_SEQUENCE);
-          const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
-
-          linkedInvoiceNo = generateInvoiceNumber(sequenceValue);
-        }
       }
 
       await WorkOrder.updateMany(
@@ -266,8 +250,6 @@ export const updateWorkOrderDetails = async (req, res) => {
           },
         }
       );
-
-      console.log(linkedInvoiceNo);
     }
 
     // Add Sub Job Number
