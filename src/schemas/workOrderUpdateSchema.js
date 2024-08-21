@@ -28,5 +28,4 @@ export const WorkOrderUpdateSchema = Joi.object({
   workOrderCodeSub: Joi.string().allow(null, ""),
   workOrderInvoiceNumber: Joi.string().allow(null, ""),
   workOrderLinkedJobs: Joi.array(),
-  workOrderLinkedInvoiceNo: Joi.string().allow(null, ""),
 });

@@ -94,6 +94,12 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
       doc.font("Helvetica-Bold").fontSize(12).text("Job Site", 50, y);
       doc.font("Helvetica").fontSize(12).text(customer.customerAddress, 200, y);
+    } else {
+      doc.font("Helvetica-Bold").fontSize(12).text("Work Order", 50, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(workOrder.workOrderCodeSub, 200, y);
     }
 
     doc
@@ -101,6 +107,24 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
       .fontSize(12)
       .text(workOrder.workOrderCode, 420, y, { align: "right" });
     incrementYAndCheck();
+
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI) {
+      doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          workOrder.workOrderCompletedDate
+            ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "-",
+          200,
+          y
+        );
+    }
 
     if (workOrder.workOrderFrom === CMP_SINHAGIRI_DIR) {
       doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
@@ -459,6 +483,14 @@ export const generateMultipleInvoicePDF = (
       .text("Invoice No #", 420, y, { align: "right" });
     incrementYAndCheck();
 
+    if (workOrder.workOrderFrom === CMP_SINHAGIRI) {
+      doc.font("Helvetica-Bold").fontSize(12).text("Work Order", 50, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(workOrder.workOrderCodeSub, 200, y);
+    }
+
     // 2
     doc
       .font("Helvetica")
@@ -514,6 +546,23 @@ export const generateMultipleInvoicePDF = (
           420,
           y,
           { align: "right" }
+        );
+    } else {
+      incrementYAndCheck();
+      doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
+      doc
+        .font("Helvetica")
+        .fontSize(12)
+        .text(
+          workOrder.workOrderCompletedDate
+            ? new Date(workOrder.workOrderCompletedDate).toLocaleDateString({
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "-",
+          200,
+          y
         );
     }
   } else {
