@@ -15,6 +15,7 @@ import {
 } from "../constants/messageConstants.js";
 import { ObjectId } from "mongodb";
 import { customerUpdateSchema } from "../schemas/customerUpdateScehema.js";
+import { isValidString } from "../services/commonServices.js";
 
 // Register customer
 export const registerCustomer = async (req, res) => {
@@ -117,12 +118,26 @@ export const updateCustomer = async (req, res) => {
 
 export const getAllCustomers = async (req, res) => {
   try {
-    //const customers = await Customer.find();
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+    const filterMobile = req.query.customerTel;
+
+    const skip = page * limit;
+
+    // Build the $match stage for search with null/empty checks
+    const matchStage = {
+      ...(isValidString(filterMobile) && {
+        "customerTel.mobile": {
+          $regex: `^${filterMobile}`,
+          $options: "i",
+        },
+      }),
+    };
 
     const pipeline = [
       // Fetch all customers
       {
-        $match: {}, // You can add any match condition if needed
+        $match: matchStage, // You can add any match condition if needed
       },
       // Join customers with units
       {
@@ -179,15 +194,24 @@ export const getAllCustomers = async (req, res) => {
           hasUnits: 0,
         },
       },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
     ];
 
-    const customers = await Customer.aggregate(pipeline);
+    const data = await Customer.aggregate(pipeline);
+    // Step 1: Count documents that match the filter
+    const count = await Customer.countDocuments(matchStage);
 
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(customer_success_code, success_message, customers)
-      );
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(customer_success_code, success_message, {
+        data,
+        count,
+      })
+    );
   } catch (error) {
     console.log(error);
     return res

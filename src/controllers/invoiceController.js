@@ -19,7 +19,6 @@ import {
   CMP_ERE,
   CMP_SINGER_DIR,
   CMP_SINHAGIRI_DIR,
-  COMPLETED_STATUS,
   INVOICE_SEQUENCE,
 } from "../constants/commonConstants.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
@@ -251,6 +250,10 @@ export const updateInvoiceLinkedToContorller = async (req, res) => {
 // Get all invoices
 export const getAllInvoices = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = page * limit;
     const filteredDate = req.body.filteredDate;
 
     const pipeline = [
@@ -329,12 +332,30 @@ export const getAllInvoices = async (req, res) => {
       };
     }
 
+    // Add the $facet stage to get both count and results
+    pipeline.push({
+      $facet: {
+        totalCount: [{ $count: "count" }], // Get the total count of documents
+        data: [
+          { $skip: skip }, // Apply pagination
+          { $limit: limit },
+        ],
+      },
+    });
+
     const result = await InvoiceModel.aggregate(pipeline);
+
+    // Extract the count and the data from the result
+    const count = result[0].totalCount[0] ? result[0].totalCount[0].count : 0;
+    const data = result[0].data;
 
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(workorder_success_code, success_message, result)
+        ApiResponse.response(workorder_success_code, success_message, {
+          data,
+          count,
+        })
       );
   } catch (error) {
     console.log(error);
