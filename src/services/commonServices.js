@@ -10,6 +10,10 @@ import {
 } from "../constants/commonConstants.js";
 dotenv.config();
 
+export const isValidString = (str) => {
+  return typeof str === "string" && str.trim() !== "";
+};
+
 export const generateWorkOrderNumber = (type, sequenceValue, scheduledDate) => {
   // Set the desired length of the sequence number (e.g., 4 digits for "S0001")
   const sequenceLength = 4;

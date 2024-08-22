@@ -38,6 +38,7 @@ import {
   generateInvoiceNumber,
   generateWorkOrderNumber,
   getSequenceType,
+  isValidString,
   updateDateInWorkOrderCode,
 } from "../services/commonServices.js";
 import {
@@ -466,23 +467,298 @@ export const workOrderCompleteState = async (req, res) => {
 // Get all work Orders - Admin
 export const getWorkOrders = async (req, res) => {
   try {
-    const jobs = await WorkOrder.find()
-      .sort({ workOrderScheduledDate: 1 })
-      .populate("workOrderCustomerId")
-      .populate({
-        path: "workOrderUnitReference",
-        populate: {
-          path: "unitQrCode",
-          select: "qrCodeName",
-        },
-      })
-      .populate("workOrderInvoice");
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 10;
 
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(workorder_success_code, success_message, jobs)
-      );
+    const skip = page * limit;
+
+    const filterCustomerName = req.query.customerName;
+    const filterCustomerMobile = req.query.customerMobile;
+    const filterJobCode = req.query.jobCode;
+    const filterQrCode = req.query.qrCode;
+    const filterUnitSerial = req.query.unitSerial;
+
+    const pipeline = [
+      // Match stage for filtering by job code
+      {
+        $match: {
+          ...(isValidString(filterJobCode) && {
+            workOrderCode: {
+              $regex: `${filterJobCode}`,
+              $options: "i",
+            },
+          }),
+        },
+      },
+
+      // Lookup and filter customers
+      {
+        $lookup: {
+          from: "customers",
+          let: { customerId: "$workOrderCustomerId" }, // Define variables
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$customerId"] }, // Match customer ID
+                ...(isValidString(filterCustomerName) && {
+                  customerName: {
+                    $regex: `${filterCustomerName}`,
+                    $options: "i",
+                  },
+                }),
+                ...(isValidString(filterCustomerMobile) && {
+                  "customerTel.mobile": {
+                    $regex: `^${filterCustomerMobile}`,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+          ],
+          as: "customer",
+        },
+      },
+      {
+        $unwind: {
+          path: "$customer",
+        },
+      },
+
+      // Lookup and filter units
+      {
+        $lookup: {
+          from: "units",
+          as: "unit",
+          let: { unitId: "$workOrderUnitReference" }, // Define variables
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$unitId"] }, // Match unit ID
+                ...(isValidString(filterUnitSerial) && {
+                  unitSerialNo: {
+                    $regex: `^${filterUnitSerial}`,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+            {
+              $lookup: {
+                from: "qrcodes",
+                as: "unitQrCode",
+                let: { qrCodeId: "$unitQrCode" }, // Correctly reference the unitQrCode field from the matched unit
+                pipeline: [
+                  {
+                    $match: {
+                      $and: [
+                        { $expr: { $eq: ["$_id", "$$qrCodeId"] } },
+                        ...(isValidString(filterQrCode)
+                          ? [
+                              {
+                                qrCodeName: {
+                                  $regex: `${filterQrCode}`,
+                                  $options: "i",
+                                },
+                              },
+                            ]
+                          : []),
+                      ],
+                    },
+                  },
+                  { $project: { qrCodeName: 1, _id: 0 } }, // Project only qrCodeName
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$unitQrCode",
+                preserveNullAndEmptyArrays: isValidString(filterQrCode)
+                  ? false
+                  : true, // Optional: to keep documents without a QR
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$unit",
+        },
+      },
+      // Lookup invoices
+      {
+        $lookup: {
+          from: "invoices",
+          let: { invoiceId: "$workOrderInvoice" }, // Define variables
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$invoiceId"] }, // Match invoice ID
+              },
+            },
+          ],
+          as: "invoice",
+        },
+      },
+      {
+        $unwind: {
+          path: "$invoice",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // Skip and limit for pagination
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ];
+
+    const data = await WorkOrder.aggregate(pipeline);
+
+    const countDocuments = await WorkOrder.aggregate([
+      // Match stage for filtering by job code
+      {
+        $match: {
+          ...(isValidString(filterJobCode) && {
+            workOrderCode: {
+              $regex: `${filterJobCode}`,
+              $options: "i",
+            },
+          }),
+        },
+      },
+
+      // Lookup and filter customers
+      {
+        $lookup: {
+          from: "customers",
+          let: { customerId: "$workOrderCustomerId" }, // Define variables
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$customerId"] }, // Match customer ID
+                ...(isValidString(filterCustomerName) && {
+                  customerName: {
+                    $regex: `${filterCustomerName}`,
+                    $options: "i",
+                  },
+                }),
+                ...(isValidString(filterCustomerMobile) && {
+                  "customerTel.mobile": {
+                    $regex: `^${filterCustomerMobile}`,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+          ],
+          as: "customer",
+        },
+      },
+      {
+        $unwind: {
+          path: "$customer",
+        },
+      },
+
+      // Lookup and filter units
+      {
+        $lookup: {
+          from: "units",
+          as: "unit",
+          let: { unitId: "$workOrderUnitReference" }, // Define variables
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$unitId"] }, // Match unit ID
+                ...(isValidString(filterUnitSerial) && {
+                  unitSerialNo: {
+                    $regex: `^${filterUnitSerial}`,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+            {
+              $lookup: {
+                from: "qrcodes",
+                as: "unitQrCode",
+                let: { qrCodeId: "$unitQrCode" }, // Correctly reference the unitQrCode field from the matched unit
+                pipeline: [
+                  {
+                    $match: {
+                      $and: [
+                        { $expr: { $eq: ["$_id", "$$qrCodeId"] } },
+                        ...(isValidString(filterQrCode)
+                          ? [
+                              {
+                                qrCodeName: {
+                                  $regex: `${filterQrCode}`,
+                                  $options: "i",
+                                },
+                              },
+                            ]
+                          : []),
+                      ],
+                    },
+                  },
+                  { $project: { qrCodeName: 1, _id: 0 } }, // Project only qrCodeName
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$unitQrCode",
+                preserveNullAndEmptyArrays: isValidString(filterQrCode)
+                  ? false
+                  : true, // Optional: to keep documents without a QR
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$unit",
+        },
+      },
+      // Lookup invoices
+      {
+        $lookup: {
+          from: "invoices",
+          let: { invoiceId: "$workOrderInvoice" }, // Define variables
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$invoiceId"] }, // Match invoice ID
+              },
+            },
+          ],
+          as: "invoice",
+        },
+      },
+      {
+        $unwind: {
+          path: "$invoice",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $count: "totalCount",
+      },
+    ]);
+
+    const count = countDocuments.length > 0 ? countDocuments[0].totalCount : 0;
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(workorder_success_code, success_message, {
+        data,
+        count,
+      })
+    );
   } catch (error) {
     console.log(error);
     return res
@@ -495,6 +771,10 @@ export const getWorkOrders = async (req, res) => {
 export const GetWorkOrdersByUnit = async (req, res) => {
   try {
     const { id } = req.params;
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = page * limit;
 
     const unit = await Unit.findById(new ObjectId(id));
 
@@ -504,21 +784,24 @@ export const GetWorkOrdersByUnit = async (req, res) => {
         .json(ApiResponse.error(customer_error_code, customer_unit_not_found));
     }
 
-    const populatedWorkOrders = await WorkOrder.find({
+    const data = await WorkOrder.find({
       workOrderUnitReference: new ObjectId(unit._id),
     })
       .populate("workOrderInvoice")
-      .sort({ workOrderScheduledDate: 1 });
+      .sort({ workOrderScheduledDate: 1 })
+      .skip(skip)
+      .limit(limit);
 
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(
-          workorder_success_code,
-          success_message,
-          populatedWorkOrders
-        )
-      );
+    const count = await WorkOrder.find({
+      workOrderUnitReference: new ObjectId(unit._id),
+    });
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(workorder_success_code, success_message, {
+        data,
+        count,
+      })
+    );
   } catch (error) {
     console.log(error);
     return res
