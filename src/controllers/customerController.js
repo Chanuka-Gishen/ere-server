@@ -36,8 +36,10 @@ export const registerCustomer = async (req, res) => {
       customerEmail,
     } = value;
 
+    const nameRegex = new RegExp(customerName.replace(/\s+/g, ""), "i");
+
     const existingUser = await Customer.findOne({
-      "customerTel.mobile": customerMobile,
+      customerName: { $regex: nameRegex },
     });
 
     if (existingUser) {
@@ -94,6 +96,20 @@ export const updateCustomer = async (req, res) => {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(ApiResponse.response(customer_error_code, customer_not_found));
+    }
+
+    if (customerName != customer.customerName) {
+      const nameRegex = new RegExp(customerName.replace(/\s+/g, ""), "i");
+
+      const existingUser = await Customer.findOne({
+        customerName: { $regex: nameRegex },
+      });
+
+      if (existingUser) {
+        return res
+          .status(httpStatus.BAD_REQUEST)
+          .json(ApiResponse.error(customer_error_code, customer_exists));
+      }
     }
 
     customer.customerName = customerName;
