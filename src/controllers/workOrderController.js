@@ -478,6 +478,26 @@ export const getWorkOrders = async (req, res) => {
     const filterQrCode = req.query.qrCode;
     const filterUnitSerial = req.query.unitSerial;
 
+    const matchConditionsCustomer = {
+      $expr: { $eq: ["$_id", "$$customerId"] }, // Always match on customer ID
+    };
+
+    // Add condition for customerName if it's valid
+    if (isValidString(filterCustomerName)) {
+      matchConditionsCustomer.customerName = {
+        $regex: `${filterCustomerName}`,
+        $options: "i", // Add case-insensitive option if needed
+      };
+    }
+
+    // Add condition for customerTel.mobile if it's valid
+    if (isValidString(filterCustomerMobile)) {
+      matchConditionsCustomer["customerTel.mobile"] = {
+        $regex: `^${filterCustomerMobile}`,
+        $options: "i",
+      };
+    }
+
     const pipeline = [
       // Match stage for filtering by job code
       {
@@ -498,21 +518,7 @@ export const getWorkOrders = async (req, res) => {
           let: { customerId: "$workOrderCustomerId" }, // Define variables
           pipeline: [
             {
-              $match: {
-                $expr: { $eq: ["$_id", "$$customerId"] }, // Match customer ID
-                ...(isValidString(filterCustomerName) && {
-                  customerName: {
-                    $regex: `${filterCustomerName}`,
-                    $options: "i",
-                  },
-                }),
-                ...(isValidString(filterCustomerMobile) && {
-                  "customerTel.mobile": {
-                    $regex: `^${filterCustomerMobile}`,
-                    $options: "i",
-                  },
-                }),
-              },
+              $match: matchConditionsCustomer,
             },
           ],
           as: "customer",
@@ -1026,7 +1032,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
         .populate("workOrderInvoice")
-        .sort({ workOrderScheduledDate: 1 });
+        .sort({ workOrderScheduledDate: -1 });
     } else {
       result = await WorkOrder.find({
         "workOrderAssignedEmployees.employee": new ObjectId(employeeId),
@@ -1035,7 +1041,7 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
         .populate("workOrderCustomerId")
         .populate("workOrderUnitReference")
         .populate("workOrderInvoice")
-        .sort({ workOrderScheduledDate: 1 });
+        .sort({ workOrderScheduledDate: -1 });
     }
 
     return res

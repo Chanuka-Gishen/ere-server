@@ -412,64 +412,55 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
   }
 };
 
-// Get units sorted and group by next maintainence date
+// Get units sorted and group by next maintenance date
 export const getUnitsForCalender = async (req, res) => {
   try {
     const units = await Unit.aggregate([
       {
-        $match: {
-          unitNextMaintenanceDate: { $ne: null },
-        },
-      },
-      {
-        $addFields: {
-          maintenanceDate: {
-            $dateToString: {
-              format: "%Y-%m-%d", // Format as YYYY-MM-DD
-              date: "$unitNextMaintenanceDate", // Extract parts from this date field
-            },
-          },
-        },
-      },
-      {
-        $lookup: {
-          from: "customers",
-          localField: "unitCustomerId",
-          foreignField: "_id",
-          as: "customer",
-        },
-      },
-      {
-        $lookup: {
-          from: "qrcodes",
-          localField: "unitQrCode",
-          foreignField: "_id",
-          as: "qrCode",
-        },
+        $match: { unitNextMaintenanceDate: { $ne: null } },
       },
       {
         $group: {
-          _id: "$maintenanceDate", // Group by the extracted date parts
-          units: {
-            $push: {
-              $mergeObjects: [
-                "$$ROOT",
-                {
-                  customer: { $arrayElemAt: ["$customer", 0] },
-                  qrCode: {
-                    $cond: [
-                      { $eq: [{ $size: "$qrCode" }, 0] },
-                      null,
-                      { $arrayElemAt: ["$qrCode", 0] },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
+          _id: "$unitNextMaintenanceDate",
+        },
+      },
+      {
+        $sort: { _id: -1 },
+      },
+      {
+        $project: {
+          unitNextMaintenanceDate: "$_id",
         },
       },
     ]);
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(customer_success_code, success_message, units)
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get units for the selected date in the calender
+export const getUnitsForCalenderDetails = async (req, res) => {
+  try {
+    const { selectedDate } = req.params;
+
+    const filterDate = new Date(selectedDate);
+    const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+
+    const units = await Unit.find({
+      unitNextMaintenanceDate: { $gte: startOfDay, $lte: endOfDay },
+    })
+      .populate("unitCustomerId")
+      .populate("unitQrCode");
 
     return res
       .status(httpStatus.OK)

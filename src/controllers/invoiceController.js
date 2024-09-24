@@ -349,14 +349,12 @@ export const getAllInvoices = async (req, res) => {
     const count = result[0].totalCount[0] ? result[0].totalCount[0].count : 0;
     const data = result[0].data;
 
-    return res
-      .status(httpStatus.OK)
-      .json(
-        ApiResponse.response(workorder_success_code, success_message, {
-          data,
-          count,
-        })
-      );
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(workorder_success_code, success_message, {
+        data,
+        count,
+      })
+    );
   } catch (error) {
     console.log(error);
     return res
