@@ -125,7 +125,10 @@ export const createJob = async (req, res) => {
     const sequenceValueInv = await getSequenceValue(INVOICE_SEQUENCE);
 
     const newInvoice = new InvoiceModel({
-      invoiceNumber: generateInvoiceNumber(sequenceValueInv),
+      invoiceNumber:
+        savedJob.workOrderFrom === CMP_SINGER
+          ? null
+          : generateInvoiceNumber(sequenceValueInv),
       invoiceLinkedWorkOrder: new ObjectId(savedJob._id),
       invoiceLinkedCustomer: new ObjectId(savedJob.workOrderCustomerId),
       invoiceLinkedUnit: new ObjectId(savedJob.workOrderUnitReference),
