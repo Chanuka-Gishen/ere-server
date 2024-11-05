@@ -560,7 +560,7 @@ export const getAllUnits = async (req, res) => {
     // Sort order
     const sort = {};
     if (orderBy === UNIT_ORDER_BY.QR_CODE) {
-      sort["qrCode.qrCodeName"] = -1; // Sort by QR code in ascending order
+      sort["qrCode.qrCodeName"] = 1; // Sort by QR code in ascending order
     } else {
       sort.unitNextMaintenanceDate = -1; // Sort by next maintenance date in ascending order
     }
