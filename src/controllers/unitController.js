@@ -28,6 +28,9 @@ import { unitDetailsUpdateSchema } from "../schemas/unitDetailsUpdateSchema.js";
 import { QRCodeModel } from "../models/qrCodeModel.js";
 import { unitUpdateQrSchema } from "../schemas/unitUpdateQrSchema.js";
 import AirConditionerModel from "../models/airConditionerModel.js";
+import { unitsFilterSchema } from "../schemas/unitsFilterSchema.js";
+import { UNIT_ORDER_BY } from "../constants/orderByConstants.js";
+import { isValidString } from "../services/commonServices.js";
 
 // Add customer unit
 export const AddCustomerUnit = async (req, res) => {
@@ -485,6 +488,219 @@ export const getUnitSavedBrandsAndModelsController = async (req, res) => {
       .json(
         ApiResponse.response(customer_success_code, success_message, result)
       );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get all units - Admin - with filter options
+export const getAllUnits = async (req, res) => {
+  const { error, value } = unitsFilterSchema.validate(req.body);
+
+  if (error) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+  try {
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = page * limit;
+
+    const {
+      customerName,
+      qrCode,
+      customerMobileNumber,
+      unitSerialNo,
+      qrCodeLinked,
+      unitNextMaintenanceDate,
+      orderBy,
+    } = value;
+
+    const query = {};
+
+    // QR Code linked filter
+    if (qrCodeLinked !== null) {
+      if (qrCodeLinked) {
+        // Check for units that have a QR code linked
+        query.unitQrCode = { $ne: null }; // Not null means linked
+      } else if (qrCodeLinked === false) {
+        // Check for units that do not have a QR code linked
+        query.unitQrCode = null; // Null means not linked
+      }
+    }
+
+    // Unit serial number filter
+    if (unitSerialNo) {
+      query.unitSerialNo = { $regex: unitSerialNo, $options: "i" };
+    }
+
+    // Filter by next maintenance date (only year and month match)
+    if (unitNextMaintenanceDate) {
+      const [year, month] = unitNextMaintenanceDate.split("-");
+      const nextMonth = parseInt(month, 10) + 1;
+
+      // Set start and end dates for the range, adjusting for year if next month goes to January.
+      const startDate = new Date(`${year}-${month}-01`);
+      const endDate =
+        nextMonth > 12
+          ? new Date(`${parseInt(year, 10) + 1}-01-01`) // January of the next year
+          : new Date(`${year}-${String(nextMonth).padStart(2, "0")}-01`); // Next month
+
+      query.unitNextMaintenanceDate = {
+        $gte: startDate,
+        $lt: endDate,
+      };
+    }
+
+    // Sort order
+    const sort = {};
+    if (orderBy === UNIT_ORDER_BY.QR_CODE) {
+      sort["qrCode.qrCodeName"] = -1; // Sort by QR code in ascending order
+    } else {
+      sort.unitNextMaintenanceDate = -1; // Sort by next maintenance date in ascending order
+    }
+
+    // MongoDB aggregation pipeline
+    const units = await Unit.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: "customers", // Customer collection
+          as: "customer",
+          let: { customerId: "$unitCustomerId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$customerId"] }, // Match unit ID
+                ...(isValidString(customerName) && {
+                  customerName: {
+                    $regex: customerName,
+                    $options: "i",
+                  },
+                }),
+                ...(isValidString(customerMobileNumber) && {
+                  "customerTel.mobile": {
+                    $regex: customerMobileNumber,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$customer",
+      },
+      {
+        $lookup: {
+          from: "qrcodes",
+          as: "qrCode",
+          let: { code_id: "$unitQrCode" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$code_id"] }, // Match unit ID
+                ...(isValidString(qrCode) && {
+                  qrCodeName: {
+                    $regex: qrCode,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$qrCode",
+          preserveNullAndEmptyArrays: isValidString(qrCode) ? false : true,
+        },
+      },
+      { $sort: sort },
+      { $skip: skip },
+      { $limit: limit },
+    ]);
+
+    // Get total count for pagination
+    const totalCount = await Unit.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: "customers", // Customer collection
+          as: "customer",
+          let: { customerId: "$unitCustomerId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$customerId"] }, // Match unit ID
+                ...(isValidString(customerName) && {
+                  customerName: {
+                    $regex: customerName,
+                    $options: "i",
+                  },
+                }),
+                ...(isValidString(customerMobileNumber) && {
+                  "customerTel.mobile": {
+                    $regex: customerMobileNumber,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$customer",
+      },
+      {
+        $lookup: {
+          from: "qrcodes",
+          as: "qrCode",
+          let: { code_id: "$unitQrCode" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$code_id"] }, // Match unit ID
+                ...(isValidString(qrCode) && {
+                  "unitQrCode.qrCodeName": {
+                    $regex: qrCode,
+                    $options: "i",
+                  },
+                }),
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: {
+          path: "$qrCode",
+          preserveNullAndEmptyArrays: isValidString(qrCode) ? false : true,
+        },
+      },
+      {
+        $count: "totalCount",
+      },
+    ]);
+
+    const count = totalCount.length > 0 ? totalCount[0].totalCount : 0;
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(customer_success_code, success_message, {
+        units,
+        page,
+        totalCount: count,
+        totalPages: Math.ceil(totalCount / limit),
+      })
+    );
   } catch (error) {
     console.log(error);
     return res
