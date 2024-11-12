@@ -129,7 +129,7 @@ export const divideSalaryAmongEmployees = (
   let perHelperAmount = 0;
 
   if (technicianCount > 0 && helperCount > 0) {
-    const tech_ratio = 1.8;
+    const tech_ratio = 1.5;
     const total_weight = technicianCount * tech_ratio + helperCount;
 
     perTechnicianAmount = (totalTips * tech_ratio) / total_weight;

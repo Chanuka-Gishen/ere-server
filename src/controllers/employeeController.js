@@ -334,7 +334,10 @@ export const deleteEmployee = async (req, res) => {
 // Get all employees
 export const getAllEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find();
+    const employees = await Employee.find().sort({
+      userIsActive: -1,
+      userName: 1,
+    });
 
     return res
       .status(httpStatus.OK)
