@@ -531,3 +531,20 @@ export const empTotalTipsController = async (req, res) => {
       .json(ApiResponse.error(bad_request_code, error.message));
   }
 };
+
+export const getEmployeeByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const data = await Employee.findById(new ObjectId(id));
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(employee_success_code, success_message, data));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};

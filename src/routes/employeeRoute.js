@@ -12,6 +12,7 @@ import {
   getTotalTipsForLastMonth,
   empTotalTipsController,
   getTotalTipsForCurrentMonth,
+  getEmployeeByIdController,
 } from "../controllers/employeeController.js";
 import { verifyToken } from "../middleware/auth.js";
 import { checkAdmin } from "../middleware/permission.js";
@@ -57,6 +58,11 @@ employeeRoutes.get(
   "/total-tips/:id",
   [verifyToken, checkAdmin],
   empTotalTipsController
+);
+employeeRoutes.get(
+  "/details/:id",
+  [verifyToken, checkAdmin],
+  getEmployeeByIdController
 );
 
 export default employeeRoutes;
