@@ -719,7 +719,7 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
     })
       .populate("unitCustomerId")
       .populate("unitQrCode")
-      .sort({ unitNextMaintenanceDate: 1 });
+      .sort({ unitCustomerId: 1, unitNextMaintenanceDate: 1 });
 
     // Create a new Excel workbook and sheet
     const workbook = new ExcelJS.Workbook();
