@@ -111,14 +111,9 @@ export const createReadableStream = (imageData) => {
   return stream;
 };
 
-const roundUpWithoutExceeding = (value) => {
-  // Check if the value has a decimal part
-  if (value % 1 === 0) {
-    return value; // Return as-is if there's no decimal part
-  } else {
-    return Math.floor(value); // Round down to the nearest integer if there's a decimal part
-  }
-};
+function roundToTwoDecimals(value) {
+  return Number(value.toFixed(2));
+}
 
 export const divideSalaryAmongEmployees = (
   technicianCount,
@@ -129,22 +124,26 @@ export const divideSalaryAmongEmployees = (
   let perHelperAmount = 0;
 
   if (technicianCount > 0 && helperCount > 0) {
-    const tech_ratio = 1.6;
-    const total_weight = technicianCount * tech_ratio + helperCount;
+    const tech_ratio = 0.6;
+    const helper_ratio = 0.4;
+    const total_weight =
+      technicianCount * tech_ratio + helperCount * helper_ratio;
 
-    perTechnicianAmount = (totalTips * tech_ratio) / total_weight;
-    perHelperAmount = totalTips / total_weight;
-  } else if (technicianCount > 0) {
-    // Only technicians, divide the total salary among technicians
-    perTechnicianAmount = totalTips / technicianCount;
-  } else if (helperCount > 0) {
+    const value = totalTips / total_weight;
+
+    perTechnicianAmount = value * tech_ratio;
+    perHelperAmount = value * helper_ratio;
+  } else if (technicianCount === 0) {
     // Only helpers, divide the total salary among helpers
     perHelperAmount = totalTips / helperCount;
+  } else if (helperCount === 0) {
+    // Only technicians, divide the total salary among technicians
+    perTechnicianAmount = totalTips / technicianCount;
   }
 
   return {
-    perTechnicianAmount: roundUpWithoutExceeding(perTechnicianAmount),
-    perHelperAmount: roundUpWithoutExceeding(perHelperAmount),
+    perTechnicianAmount: roundToTwoDecimals(perTechnicianAmount),
+    perHelperAmount: roundToTwoDecimals(perHelperAmount),
   };
 };
 

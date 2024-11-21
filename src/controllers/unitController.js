@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import { ObjectId } from "mongodb";
+import ExcelJS from "exceljs";
 import ApiResponse from "../services/ApiResponse.js";
 import {
   bad_request_code,
@@ -702,6 +703,102 @@ export const getAllUnits = async (req, res) => {
         totalPages: Math.ceil(totalCount / limit),
       })
     );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const getDueUnitsExcelDonwloadController = async (req, res) => {
+  try {
+    // Fetch data from the database
+    const data = await Unit.find({
+      unitNextMaintenanceDate: { $lt: new Date() },
+    })
+      .populate("unitCustomerId")
+      .populate("unitQrCode")
+      .sort({ unitNextMaintenanceDate: 1 });
+
+    // Create a new Excel workbook and sheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Data Sheet");
+
+    // Define columns for the Excel sheet
+    const columns = [
+      { header: "ID", key: "_id" },
+      { header: "Customer Name", key: "customerName" },
+      { header: "Customer Address", key: "customerAddress" },
+      { header: "Customer Mobile", key: "customerMobile" },
+      { header: "Unit Brand", key: "unitBrand" },
+      { header: "Unit Model", key: "unitModel" },
+      { header: "Unit Serial No", key: "unitSerialNo" },
+      { header: "Installed Date", key: "unitInstalledDate" },
+      { header: "Last Maintainence Date", key: "unitLastMaintenanceDate" },
+      { header: "Next Service Date", key: "unitNextMaintenanceDate" },
+      { header: "QR Code", key: "qrCodeName" },
+      // Add more columns based on your database schema
+    ];
+
+    console.log(data);
+
+    // Set columns to worksheet
+    worksheet.columns = columns;
+
+    // Add rows to the worksheet
+    data.forEach((item) => {
+      worksheet.addRow({
+        _id: item._id,
+        customerName: item.unitCustomerId
+          ? item.unitCustomerId.customerName
+          : " - ",
+        customerAddress: item.unitCustomerId
+          ? item.unitCustomerId.customerAddress
+          : " - ",
+        customerMobile: item.unitCustomerId
+          ? item.unitCustomerId.customerTel.mobile
+          : " - ",
+        unitBrand: item.unitBrand,
+        unitModel: item.unitModel,
+        unitSerialNo: item.unitSerialNo,
+        unitInstalledDate: item.unitInstalledDate
+          ? new Date(item.unitInstalledDate).toLocaleDateString("en-US")
+          : " - ",
+        unitLastMaintenanceDate: item.unitLastMaintenanceDate
+          ? new Date(item.unitLastMaintenanceDate).toLocaleDateString("en-US")
+          : " - ",
+        unitNextMaintenanceDate: item.unitNextMaintenanceDate
+          ? new Date(item.unitNextMaintenanceDate).toLocaleDateString("en-US")
+          : " - ",
+        qrCodeName: item.unitQrCode ? item.unitQrCode.qrCodeName : " - ",
+      });
+    });
+
+    // Auto-adjust column widths based on the longest cell in each column
+    worksheet.columns.forEach((column) => {
+      let maxLength = 10; // Set a minimum width for each column
+
+      // Iterate through each row in the column to find the longest content
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const cellValue = cell.value ? cell.value.toString() : "";
+        maxLength = Math.max(maxLength, cellValue.length);
+      });
+
+      // Adjust column width based on maxLength
+      column.width = maxLength + 2; // Add padding for better visibility
+    });
+
+    // Set response headers for file download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=DataSheet.xlsx");
+
+    // Write the workbook to the response stream
+    await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
     console.log(error);
     return res
