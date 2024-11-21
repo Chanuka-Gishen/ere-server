@@ -3,6 +3,7 @@ import {
   deleteUnit,
   getAllUnits,
   getCustomerUnitDetailsFromQrCode,
+  getDueUnitsExcelDonwloadController,
   getUnitDetails,
   getUnitSavedBrandsAndModelsController,
   getUnitsForCalender,
@@ -31,6 +32,11 @@ unitRoutes.get(
   "/select-model",
   [verifyToken],
   getUnitSavedBrandsAndModelsController
+);
+unitRoutes.get(
+  "/download-due-units",
+  [verifyToken, checkAdmin],
+  getDueUnitsExcelDonwloadController
 );
 
 export default unitRoutes;
