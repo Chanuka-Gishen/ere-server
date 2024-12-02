@@ -7,6 +7,10 @@ const invoiceSchema = new Schema({
     type: String,
     default: null,
   },
+  invoiceNumberPrevious: {
+    type: String,
+    default: null,
+  },
   invoiceLinkedTo: [
     {
       type: mongoose.Schema.Types.ObjectId,
