@@ -201,40 +201,30 @@ export const updateWorkOrderDetails = async (req, res) => {
           (id) => !linkedObjectIds.includes(id)
         );
 
-        // Check existing Links and get the common invoice number
-        const existingObjectIds = workOrder.workOrderLinked.map(
-          (id) => new ObjectId(id)
-        );
-
-        // Fetch the documents from MongoDB
-        const invoices = await WorkOrder.find({
-          _id: { $in: existingObjectIds },
-        }).select("workOrderLinkedInvoiceNo"); // Only select the workOrderLinkedInvoiceNo field
-
-        // Extract the invoiceNo fields
-        const invoiceNos = invoices.map(
-          (invoice) => invoice.workOrderLinkedInvoiceNo
-        );
-
-        // Check if all invoiceNo fields are equal
-        const allEqual = invoiceNos.every(
-          (invoiceNo) => invoiceNo === invoiceNos[0]
-        );
-
-        if (allEqual) {
-          if (invoiceNos[0] === null) {
-            await updateSequenceValue(INVOICE_SEQUENCE);
-            const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
-
-            linkedInvoiceNo = generateInvoiceNumber(sequenceValue);
-          } else {
-            linkedInvoiceNo = invoiceNos[0];
-          }
-        }
+        const deletedObjIds = deletedIds.map((id) => new ObjectId(id));
 
         if (deletedIds.length > 0) {
+          //   const deletedInvoices = await WorkOrder.find({
+          //     _id: { $in: deletedObjIds },
+          //   }).select("workOrderInvoice");
+
+          //   deletedInvoices.forEach(async (inv) => {
+          //     const invoice = await InvoiceModel.findById(inv.workOrderInvoice);
+          //     if (invoice.invoiceNumberPrevious) {
+          //       invoice.invoiceNumber = invoice.invoiceNumberPrevious;
+          //     } else {
+          //       const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+
+          //       const genInvoiceNo = generateInvoiceNumber(sequenceValue);
+
+          //       invoice.invoiceNumber = genInvoiceNo;
+          //     }
+
+          //     await invoice.save();
+          //   });
+
           await WorkOrder.updateMany(
-            { _id: { $in: deletedIds } },
+            { _id: { $in: deletedObjIds } },
             {
               $set: { workOrderLinked: [], workOrderLinkedInvoiceNo: null },
             }
@@ -243,6 +233,53 @@ export const updateWorkOrderDetails = async (req, res) => {
           workOrder.workOrderLinked = [];
           workOrder.workOrderLinkedInvoiceNo = null;
         }
+      }
+
+      if (workOrder.workOrderLinked.lenth > 0) {
+        // Check existing Links and get the common invoice number
+        const existingObjectIds = workOrder.workOrderLinked.map(
+          (id) => new ObjectId(id)
+        );
+
+        // Fetch the documents from MongoDB
+        const invoices = await WorkOrder.find({
+          _id: { $in: existingObjectIds },
+        }).select("workOrderLinkedInvoiceNo");
+
+        // Extract the invoiceNo fields
+        const invoiceNos = invoices.map(
+          (invoice) => invoice.workOrderLinkedInvoiceNo
+        );
+
+        // Check if all values are null
+        const allNull = invoiceNos.every((value) => value === null);
+
+        if (allNull) {
+          const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+          const genInvoiceNo = generateInvoiceNumber(sequenceValue);
+
+          linkedInvoiceNo = genInvoiceNo;
+        } else {
+          // Calculate the most repetitive value
+          const frequencyMap = {};
+
+          invoiceNos.forEach((value) => {
+            if (value !== null) {
+              frequencyMap[value] = (frequencyMap[value] || 0) + 1;
+            }
+          });
+
+          const mostRepetitiveValue = Object.keys(frequencyMap).reduce((a, b) =>
+            frequencyMap[a] > frequencyMap[b] ? a : b
+          );
+
+          linkedInvoiceNo = mostRepetitiveValue;
+        }
+      } else {
+        const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+        const genInvoiceNo = generateInvoiceNumber(sequenceValue);
+
+        linkedInvoiceNo = genInvoiceNo;
       }
 
       await WorkOrder.updateMany(
