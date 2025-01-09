@@ -110,7 +110,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
       });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date #", 50, y);
+    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -125,6 +125,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
         200,
         y
       );
+    incrementYAndCheck();
   }
 
   // SINHAGIRI --- Invoice Infomation
@@ -145,9 +146,14 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc
       .font("Helvetica")
       .fontSize(12)
-      .text(workOrder.workOrderCode ? workOrder.workOrderCode : "-", 420, y, {
-        align: "right",
-      });
+      .text(
+        workOrder.workOrderCodeSub ? workOrder.workOrderCodeSub : "-",
+        420,
+        y,
+        {
+          align: "right",
+        }
+      );
     incrementYAndCheck();
 
     doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
@@ -165,6 +171,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
         200,
         y
       );
+    incrementYAndCheck();
   }
 
   // SINHAGIRI DIR --- Invoice Information
@@ -268,8 +275,9 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Account number", 50, y);
     doc.font("Helvetica").fontSize(12).text("014212025778", 200, y);
+
+    incrementYAndCheck(20);
   }
-  incrementYAndCheck(20);
 
   // Divider
   //incrementYAndCheck();
