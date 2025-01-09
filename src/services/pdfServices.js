@@ -145,9 +145,14 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc
       .font("Helvetica")
       .fontSize(12)
-      .text(workOrder.workOrderCode ? workOrder.workOrderCode : "-", 420, y, {
-        align: "right",
-      });
+      .text(
+        workOrder.workOrderCodeSub ? workOrder.workOrderCodeSub : "-",
+        420,
+        y,
+        {
+          align: "right",
+        }
+      );
     incrementYAndCheck();
 
     doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
