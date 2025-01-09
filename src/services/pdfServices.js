@@ -110,7 +110,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
       });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date #", 50, y);
+    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
