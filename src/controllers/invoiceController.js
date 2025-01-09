@@ -298,6 +298,7 @@ export const getAllInvoices = async (req, res) => {
           _id: "$_id",
           workOrderCode: "$workOrder.workOrderCode",
           workOrderFrom: "$workOrder.workOrderFrom",
+          workOrderMainInvoice: "$workOrder.workOrderLinkedInvoiceNo",
           workOrderInvoiceNumber: "$invoiceNumber",
           customer: "$customer",
           workOrderCompletedDate: "$workOrder.workOrderCompletedDate",
