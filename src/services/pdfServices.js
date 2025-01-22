@@ -133,27 +133,24 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
 
     doc.font("Helvetica").fontSize(12).text("Singhagiri (Pvt) Ltd", 200, y);
-
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
-      .text("Job Code #", 420, y, { align: "right" });
+      .text("Invoice No #", 420, y, { align: "right" });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Invoice No", 50, y);
-    doc.font("Helvetica").fontSize(12).text(invoice.invoiceNumber, 200, y);
-
+    doc.font("Helvetica-Bold").fontSize(12).text("Job Code", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
       .text(
         workOrder.workOrderCodeSub ? workOrder.workOrderCodeSub : "-",
-        420,
-        y,
-        {
-          align: "right",
-        }
+        200,
+        y
       );
+    doc.font("Helvetica").fontSize(12).text(invoice.invoiceNumber, 420, y, {
+      align: "right",
+    });
     incrementYAndCheck();
 
     doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
@@ -499,15 +496,22 @@ export const generateMultipleInvoicePDF = (
     doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
 
     doc.font("Helvetica").fontSize(12).text("Singhagiri (Pvt) Ltd", 200, y);
-
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
-      .text("Job Code #", 420, y, { align: "right" });
+      .text("Invoice No #", 420, y, { align: "right" });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Invoice No", 50, y);
 
+    doc.font("Helvetica-Bold").fontSize(12).text("Job Code", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        workOrder.workOrderCodeSub ? workOrder.workOrderCodeSub : "-",
+        200,
+        y
+      );
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -515,15 +519,6 @@ export const generateMultipleInvoicePDF = (
         workOrder.workOrderLinkedInvoiceNo
           ? workOrder.workOrderLinkedInvoiceNo
           : " - ",
-        200,
-        y
-      );
-
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(
-        workOrder.workOrderCodeSub ? workOrder.workOrderCodeSub : "-",
         420,
         y,
         {

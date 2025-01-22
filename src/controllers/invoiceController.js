@@ -22,7 +22,10 @@ import {
   INVOICE_SEQUENCE,
 } from "../constants/commonConstants.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
-import { generateInvoiceNumber } from "../services/commonServices.js";
+import {
+  generateInvoiceNumber,
+  isValidString,
+} from "../services/commonServices.js";
 import { InvoiceModel } from "../models/invoiceModel.js";
 import { InvoiceLinkSchema } from "../schemas/invoiceLinkSchema.js";
 import {
@@ -255,18 +258,54 @@ export const getAllInvoices = async (req, res) => {
 
     const skip = page * limit;
     const filteredDate = req.body.filteredDate;
+    const filteredLinkedInvoice = req.body.filteredLinkedInvoice;
+    const filteredMainInvoice = req.body.filteredLinkedInvoice;
+
+    let query = {};
+
+    if (filteredMainInvoice) {
+      query["invoiceNumber"] = {
+        $regex: `${filteredMainInvoice}`,
+        $options: "i",
+      };
+    }
+
+    let filteredDateQuery = {};
+
+    if (filteredDate) {
+      const date = new Date(filteredDate);
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      filteredDateQuery["workOrderCompletedDate"] = {
+        $gte: startDate,
+        $lte: endDate,
+      };
+    }
 
     const pipeline = [
       {
-        $lookup: {
-          from: "workorders",
-          localField: "invoiceLinkedWorkOrder",
-          foreignField: "_id",
-          as: "workOrder",
-        },
+        $match: query,
       },
       {
-        $match: {},
+        $lookup: {
+          from: "workorders",
+          as: "workOrder",
+          let: { workOrderId: "$invoiceLinkedWorkOrder" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$workOrderId"] },
+                // ...(isValidString(filteredDate) && filteredDateQuery),
+                // ...(isValidString(filteredLinkedInvoice) && {
+                //   filteredLinkedInvoice: {
+                //     $regex: `${filteredLinkedInvoice}`,
+                //   },
+                // }),
+              },
+            },
+          ],
+        },
       },
       {
         $unwind: "$workOrder",
@@ -318,31 +357,16 @@ export const getAllInvoices = async (req, res) => {
           "workOrder.workOrderCompletedDate": 1,
         },
       },
-    ];
-
-    if (filteredDate) {
-      const date = new Date(filteredDate);
-      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-      pipeline[1].$match = {
-        "workOrder.workOrderCompletedDate": {
-          $gte: startDate,
-          $lte: endDate,
+      {
+        $facet: {
+          totalCount: [{ $count: "count" }], // Get the total count of documents
+          data: [
+            { $skip: skip }, // Apply pagination
+            { $limit: limit },
+          ],
         },
-      };
-    }
-
-    // Add the $facet stage to get both count and results
-    pipeline.push({
-      $facet: {
-        totalCount: [{ $count: "count" }], // Get the total count of documents
-        data: [
-          { $skip: skip }, // Apply pagination
-          { $limit: limit },
-        ],
       },
-    });
+    ];
 
     const result = await InvoiceModel.aggregate(pipeline);
 
