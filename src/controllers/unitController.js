@@ -419,9 +419,22 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
 // Get units sorted and group by next maintenance date
 export const getUnitsForCalender = async (req, res) => {
   try {
+    const filteredMonth = req.query.filteredMonth;
+
+    // Calculate the first and last dates of the month
+    const [year, month] = filteredMonth.split("-").map(Number); // Split into year and month
+    const startDate = new Date(Date.UTC(year, month - 1, 1)); // Start of the month
+    const endDate = new Date(Date.UTC(year, month, 1));
+
     const units = await Unit.aggregate([
       {
-        $match: { unitNextMaintenanceDate: { $ne: null } },
+        $match: {
+          unitNextMaintenanceDate: {
+            $ne: null,
+            $gte: startDate, // Greater than or equal to the start of the month
+            $lt: endDate,
+          },
+        },
       },
       {
         $group: {
