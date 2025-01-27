@@ -259,9 +259,11 @@ export const getAllInvoices = async (req, res) => {
     const skip = page * limit;
     const filteredDate = req.body.filteredDate;
     const filteredLinkedInvoice = req.body.filteredLinkedInvoice;
-    const filteredMainInvoice = req.body.filteredLinkedInvoice;
+    const filteredMainInvoice = req.body.filteredMainInvoice;
 
-    let query = {};
+    let query = {
+      grandTotal: { $gt: 0 },
+    };
 
     if (filteredMainInvoice) {
       query["invoiceNumber"] = {
@@ -296,12 +298,13 @@ export const getAllInvoices = async (req, res) => {
             {
               $match: {
                 $expr: { $eq: ["$_id", "$$workOrderId"] },
-                // ...(isValidString(filteredDate) && filteredDateQuery),
-                // ...(isValidString(filteredLinkedInvoice) && {
-                //   filteredLinkedInvoice: {
-                //     $regex: `${filteredLinkedInvoice}`,
-                //   },
-                // }),
+                ...(isValidString(filteredDate) && filteredDateQuery),
+                ...(isValidString(filteredLinkedInvoice) && {
+                  workOrderLinkedInvoiceNo: {
+                    $regex: `${filteredLinkedInvoice}`,
+                    $options: "i",
+                  },
+                }),
               },
             },
           ],
