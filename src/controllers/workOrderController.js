@@ -22,12 +22,10 @@ import {
   success_message,
   workOrder_assignees_required,
   workOrder_cannot_update_assignees,
-  workOrder_chargers_updated,
   workOrder_completed,
   workOrder_deleted,
   workOrder_empty_images,
   workOrder_images_missing,
-  workOrder_invoice_not_created,
   workOrder_not_assigned,
   workOrder_not_found,
   workOrder_tip_missing,
@@ -42,11 +40,8 @@ import {
   updateDateInWorkOrderCode,
 } from "../services/commonServices.js";
 import {
-  CMP_ERE,
   CMP_SINGER,
-  CMP_SINGER_DIR,
   CMP_SINHAGIRI,
-  CMP_SINHAGIRI_DIR,
   COMPLETED_STATUS,
   CREATED_STATUS,
   INVOICE_SEQUENCE,
@@ -444,6 +439,7 @@ export const deleteWorkOrder = async (req, res) => {
 export const workOrderCompleteState = async (req, res) => {
   try {
     const { id } = req.params;
+    const date = req.body.date;
 
     const workOrder = await WorkOrder.findById(new ObjectId(id));
 
@@ -453,16 +449,10 @@ export const workOrderCompleteState = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    if (workOrder.workOrderAssignedEmployees.length === 0) {
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json(
-          ApiResponse.error(workorder_warning_code, workOrder_not_assigned)
-        );
-    }
+    const completedDate = date ? new Date(date) : new Date();
 
     workOrder.workOrderStatus = COMPLETED_STATUS;
-    workOrder.workOrderCompletedDate = new Date();
+    workOrder.workOrderCompletedDate = completedDate;
 
     const savedWorkOrder = await workOrder.save();
 
@@ -915,7 +905,7 @@ export const workOrderAssign = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, error.message));
     }
 
-    const { id, workOrderAssignedEmployees } = value;
+    const { id, workOrderAssignedEmployees, totalTip } = value;
 
     const workOrder = await WorkOrder.findById(new ObjectId(id));
 
@@ -925,13 +915,13 @@ export const workOrderAssign = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    if (workOrder.workOrderStatus === COMPLETED_STATUS) {
-      return res
-        .status(httpStatus.PRECONDITION_FAILED)
-        .json(
-          ApiResponse.error(bad_request_code, workOrder_cannot_update_assignees)
-        );
-    }
+    // if (workOrder.workOrderStatus === COMPLETED_STATUS) {
+    //   return res
+    //     .status(httpStatus.PRECONDITION_FAILED)
+    //     .json(
+    //       ApiResponse.error(bad_request_code, workOrder_cannot_update_assignees)
+    //     );
+    // }
 
     if (workOrderAssignedEmployees.length === 0) {
       return res
@@ -951,6 +941,43 @@ export const workOrderAssign = async (req, res) => {
     workOrder.workOrderAssignedEmployees = employeeIds;
 
     await workOrder.save();
+
+    if (totalTip > 0) {
+      const result = await WorkOrder.findById(new ObjectId(id)).populate({
+        path: "workOrderAssignedEmployees",
+        select: "employee tip",
+        populate: {
+          path: "employee",
+          select: "_id userFullName userRole",
+        },
+      });
+
+      const technicianCount = result.workOrderAssignedEmployees.filter(
+        (record) => record.employee.userRole === TECHNICIAN_ROLE
+      );
+      const helperCount = result.workOrderAssignedEmployees.filter(
+        (record) => record.employee.userRole === HELPER_ROLE
+      );
+
+      const { perTechnicianAmount, perHelperAmount } =
+        divideSalaryAmongEmployees(
+          technicianCount.length,
+          helperCount.length,
+          totalTip
+        );
+
+      result.workOrderEmployeeTip = totalTip;
+
+      result.workOrderAssignedEmployees.forEach((assignees) => {
+        if (assignees.employee.userRole === TECHNICIAN_ROLE) {
+          assignees.tip.amount = perTechnicianAmount;
+        } else {
+          assignees.tip.amount = perHelperAmount;
+        }
+      });
+
+      await result.save();
+    }
 
     return res
       .status(httpStatus.OK)

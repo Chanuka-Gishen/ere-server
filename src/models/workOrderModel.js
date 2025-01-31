@@ -108,6 +108,7 @@ const workOrderSchema = new Schema({
       tip: {
         amount: { type: Number, default: 0 },
       },
+      _id: false,
     },
   ],
   workOrderEmployeeTip: {
