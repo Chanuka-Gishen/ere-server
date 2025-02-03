@@ -449,6 +449,14 @@ export const workOrderCompleteState = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
+    if (workOrder.workOrderAssignedEmployees.length === 0) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(workorder_warning_code, workOrder_not_assigned)
+        );
+    }
+
     const completedDate = date ? new Date(date) : new Date();
 
     workOrder.workOrderStatus = COMPLETED_STATUS;
