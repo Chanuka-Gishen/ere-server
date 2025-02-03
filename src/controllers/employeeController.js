@@ -383,14 +383,12 @@ export const getTotalTipsForLastMonth = async (req, res) => {
     lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 2);
     lastMonthStartDate.setDate(20);
     lastMonthStartDate.setHours(0, 0, 0, 0);
-    console.log("Start Date" + lastMonthStartDate);
 
     // Get the end date of last month ( 19 )
     const lastMonthEndDate = new Date();
     lastMonthEndDate.setMonth(lastMonthEndDate.getMonth() - 1);
     lastMonthEndDate.setDate(19); // Set to last day of previous month
     lastMonthEndDate.setHours(23, 59, 59, 999);
-    console.log("End Date" + lastMonthEndDate);
 
     // Aggregation pipeline to calculate total tips for last month
     const result = await WorkOrder.aggregate([
