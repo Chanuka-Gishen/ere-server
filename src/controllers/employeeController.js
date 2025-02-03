@@ -380,12 +380,13 @@ export const getTotalTipsForLastMonth = async (req, res) => {
 
     // Get the start date of last month ( 20 )
     const lastMonthStartDate = new Date();
-    lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 1);
+    lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 2);
     lastMonthStartDate.setDate(20);
     lastMonthStartDate.setHours(0, 0, 0, 0);
 
     // Get the end date of last month ( 19 )
     const lastMonthEndDate = new Date();
+    lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 1);
     lastMonthEndDate.setDate(19); // Set to last day of previous month
     lastMonthEndDate.setHours(23, 59, 59, 999);
 
