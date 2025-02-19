@@ -125,7 +125,6 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
         200,
         y
       );
-    incrementYAndCheck();
   }
 
   // SINHAGIRI --- Invoice Infomation
@@ -461,18 +460,41 @@ export const generateMultipleInvoicePDF = (
   if ([CMP_ERE, CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
     doc.font("Helvetica-Bold").fontSize(12).text("Bill To", 50, y);
     doc.font("Helvetica").fontSize(12).text(customer.customerName, 200, y);
-
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
-      .text("Completed Date #", 420, y, { align: "right" });
+      .text("Invoice No #", 420, y, { align: "right" });
 
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Contact Number", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        customer.customerTel.mobile ? customer.customerTel.mobile : " - ",
+        200,
+        y
+      );
+
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        workOrder.workOrderLinkedInvoiceNo
+          ? workOrder.workOrderLinkedInvoiceNo
+          : " - ",
+        420,
+        y,
+        { align: "right" }
+      );
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
-      .text(`${workOrder.workOrderLinked.length} Units`, 200, y);
+      .text(`${workOrder.workOrderLinked.length}`, 200, y);
+    incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -484,9 +506,8 @@ export const generateMultipleInvoicePDF = (
               year: "numeric",
             })
           : "-",
-        420,
-        y,
-        { align: "right" }
+        200,
+        y
       );
     incrementYAndCheck();
   }
