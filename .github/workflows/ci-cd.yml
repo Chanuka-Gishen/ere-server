@@ -30,14 +30,14 @@ jobs:
       - name: Deploy to environment
         run: echo "Production depolyment"
       - name: Stop service
-        run: cd ~/server/ere-server && sudo systemctl stop ere.service
+        run: cd ~/server/ere-server && sudo systemctl stop ere-server.service
       - name: Delete old files
         run: cd /home/ec2-user/server/ere-server && sudo rm -r README.md  index.js  package.json  src  yarn.lock node_modules  package-lock.json
       - name: Copy files
-        run: cd /home/ec2-user/actions-runner-ere-backend/_work/ere-server && sudo cp -r ere-server/* /home/ec2-user/server/ere-server
+        run: cd /home/ec2-user/actions-runner/_work/ere-server && sudo cp -r ere-server/* /home/ec2-user/server/ere-server
       - name: Change owner
         run: sudo chown -R ec2-user:ec2-user /home/ec2-user/server/ere-server/ && sudo chmod -R 755 /home/ec2-user/server/ere-server/
       - name: Install dependencies
         run: cd /home/ec2-user/server/ere-server/ && sudo npm i
       - name: Start server
-        run: sudo systemctl start ere.service
+        run: sudo systemctl start ere-server.service
