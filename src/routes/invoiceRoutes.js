@@ -8,6 +8,7 @@ import {
   getAllInvoices,
   getTotalCostStats,
   updateInvoiceLinkedToContorller,
+  updateInvoiceStatus,
 } from "../controllers/invoiceController.js";
 
 const invoiceRoutes = express.Router();
@@ -29,6 +30,11 @@ invoiceRoutes.post(
   "/invoices-stats",
   [verifyToken, checkAdmin],
   getTotalCostStats
+);
+invoiceRoutes.post(
+  "/update-status",
+  [verifyToken, checkAdmin],
+  updateInvoiceStatus
 );
 
 export default invoiceRoutes;

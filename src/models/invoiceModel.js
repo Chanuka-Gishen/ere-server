@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { INV_CLOSED, INV_CREATED } from "../constants/inoviceStatus.js";
 
 const Schema = mongoose.Schema;
 
@@ -10,6 +11,11 @@ const invoiceSchema = new Schema({
   invoiceNumberPrevious: {
     type: String,
     default: null,
+  },
+  invoiceStatus: {
+    type: String,
+    enum: [INV_CREATED, INV_CLOSED],
+    default: INV_CLOSED,
   },
   invoiceLinkedTo: [
     {

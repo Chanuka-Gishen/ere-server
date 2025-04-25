@@ -19,9 +19,9 @@ import {
   customer_not_found,
   customer_unit_not_found,
   employee_not_found,
+  invoice_should_close_first,
   success_message,
   workOrder_assignees_required,
-  workOrder_cannot_update_assignees,
   workOrder_completed,
   workOrder_deleted,
   workOrder_empty_images,
@@ -33,7 +33,6 @@ import {
 import { WorkOrderUpdateSchema } from "../schemas/workOrderUpdateSchema.js";
 import {
   divideSalaryAmongEmployees,
-  generateInvoiceNumber,
   generateWorkOrderNumber,
   getSequenceType,
   isValidString,
@@ -44,7 +43,6 @@ import {
   CMP_SINHAGIRI,
   COMPLETED_STATUS,
   CREATED_STATUS,
-  INVOICE_SEQUENCE,
   WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
@@ -58,6 +56,7 @@ import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { jobLinkListFilterSchema } from "../schemas/jobLinkListFilterSchema.js";
+import { INV_CREATED } from "../constants/inoviceStatus.js";
 
 // Create New Job
 export const createJob = async (req, res) => {
@@ -116,17 +115,11 @@ export const createJob = async (req, res) => {
 
     const savedJob = await newJob.save();
 
-    await updateSequenceValue(INVOICE_SEQUENCE);
-    const sequenceValueInv = await getSequenceValue(INVOICE_SEQUENCE);
-
     const newInvoice = new InvoiceModel({
-      invoiceNumber:
-        savedJob.workOrderFrom === CMP_SINGER
-          ? null
-          : generateInvoiceNumber(sequenceValueInv),
       invoiceLinkedWorkOrder: new ObjectId(savedJob._id),
       invoiceLinkedCustomer: new ObjectId(savedJob.workOrderCustomerId),
       invoiceLinkedUnit: new ObjectId(savedJob.workOrderUnitReference),
+      invoiceStatus: INV_CREATED,
     });
 
     const savedInvoice = await newInvoice.save();
@@ -175,118 +168,78 @@ export const updateWorkOrderDetails = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    let linkedInvoiceNo = null;
+    let mainInvoiceNo = null;
 
-    if (workOrderLinkedJobs.length > 0) {
-      const linkedObjectIds = workOrderLinkedJobs.map(
-        (job) => new ObjectId(job._id)
+    //-----------------------Update Invoices-------------------------
+
+    const isNewLinkedJobs =
+      workOrder.workOrderLinked.length < workOrderLinkedJobs.length;
+    const isDeletedJobs =
+      workOrder.workOrderLinked.length > workOrderLinkedJobs.length;
+
+    const linkedObjectIds = workOrderLinkedJobs.map(
+      (job) => new ObjectId(job._id)
+    );
+
+    if (isNewLinkedJobs && workOrder.workOrderLinked.length > 0) {
+      const existingObjectIds = workOrder.workOrderLinked.map(
+        (id) => new ObjectId(id)
       );
 
-      const workOrderId = new ObjectId(workOrder._id);
+      const invoicesList = await InvoiceModel.find({
+        invoiceLinkedWorkOrder: { $in: existingObjectIds },
+      });
 
-      if (
-        linkedObjectIds.length === 1 &&
-        linkedObjectIds[0].equals(workOrderId)
-      ) {
-        workOrder.workOrderLinked = [];
-      }
+      // Extract the invoiceNo fields
+      const invoiceNumbers = invoicesList.map(
+        (invoice) => invoice.invoiceNumber
+      );
 
-      if (workOrder.workOrderLinked.length > 0) {
-        const deletedIds = workOrder.workOrderLinked.filter(
-          (id) => !linkedObjectIds.includes(id)
-        );
+      // Calculate the most repetitive value
+      const frequencyMap = {};
 
-        const deletedObjIds = deletedIds.map((id) => new ObjectId(id));
-
-        if (deletedIds.length > 0) {
-          //   const deletedInvoices = await WorkOrder.find({
-          //     _id: { $in: deletedObjIds },
-          //   }).select("workOrderInvoice");
-
-          //   deletedInvoices.forEach(async (inv) => {
-          //     const invoice = await InvoiceModel.findById(inv.workOrderInvoice);
-          //     if (invoice.invoiceNumberPrevious) {
-          //       invoice.invoiceNumber = invoice.invoiceNumberPrevious;
-          //     } else {
-          //       const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
-
-          //       const genInvoiceNo = generateInvoiceNumber(sequenceValue);
-
-          //       invoice.invoiceNumber = genInvoiceNo;
-          //     }
-
-          //     await invoice.save();
-          //   });
-
-          await WorkOrder.updateMany(
-            { _id: { $in: deletedObjIds } },
-            {
-              $set: { workOrderLinked: [], workOrderLinkedInvoiceNo: null },
-            }
-          );
-        } else {
-          workOrder.workOrderLinked = [];
-          workOrder.workOrderLinkedInvoiceNo = null;
+      invoiceNumbers.forEach((value) => {
+        if (value !== null) {
+          frequencyMap[value] = (frequencyMap[value] || 0) + 1;
         }
-      }
+      });
 
-      if (workOrder.workOrderLinked.lenth > 0) {
-        // Check existing Links and get the common invoice number
-        const existingObjectIds = workOrder.workOrderLinked.map(
-          (id) => new ObjectId(id)
-        );
+      const mostRepetitiveValue = Object.keys(frequencyMap).reduce((a, b) =>
+        frequencyMap[a] > frequencyMap[b] ? a : b
+      );
 
-        // Fetch the documents from MongoDB
-        const invoices = await WorkOrder.find({
-          _id: { $in: existingObjectIds },
-        }).select("workOrderLinkedInvoiceNo");
+      mainInvoiceNo = mostRepetitiveValue;
 
-        // Extract the invoiceNo fields
-        const invoiceNos = invoices.map(
-          (invoice) => invoice.workOrderLinkedInvoiceNo
-        );
-
-        // Check if all values are null
-        const allNull = invoiceNos.every((value) => value === null);
-
-        if (allNull) {
-          const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
-          const genInvoiceNo = generateInvoiceNumber(sequenceValue);
-
-          linkedInvoiceNo = genInvoiceNo;
-        } else {
-          // Calculate the most repetitive value
-          const frequencyMap = {};
-
-          invoiceNos.forEach((value) => {
-            if (value !== null) {
-              frequencyMap[value] = (frequencyMap[value] || 0) + 1;
-            }
-          });
-
-          const mostRepetitiveValue = Object.keys(frequencyMap).reduce((a, b) =>
-            frequencyMap[a] > frequencyMap[b] ? a : b
-          );
-
-          linkedInvoiceNo = mostRepetitiveValue;
-        }
-      } else {
-        const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
-        const genInvoiceNo = generateInvoiceNumber(sequenceValue);
-
-        linkedInvoiceNo = genInvoiceNo;
-      }
-
-      await WorkOrder.updateMany(
-        { _id: { $in: linkedObjectIds } },
-        {
-          $set: {
-            workOrderLinked: linkedObjectIds,
-            workOrderLinkedInvoiceNo: linkedInvoiceNo,
-          },
-        }
+      await InvoiceModel.updateMany(
+        { invoiceLinkedWorkOrder: { $in: linkedObjectIds } },
+        { $set: { invoiceNumber: mainInvoiceNo } }
       );
     }
+
+    if (isDeletedJobs) {
+      const deletedIds = workOrder.workOrderLinked.filter(
+        (id) => !linkedObjectIds.includes(id)
+      );
+
+      const deletedObjIds = deletedIds.map((id) => new ObjectId(id));
+
+      await InvoiceModel.updateMany(
+        { invoiceLinkedWorkOrder: { $in: deletedObjIds } },
+        { $set: { invoiceNumber: null, invoiceStatus: INV_CREATED } }
+      );
+    }
+
+    await WorkOrder.updateMany(
+      { _id: { $in: linkedObjectIds } },
+      {
+        $set: {
+          workOrderLinked: linkedObjectIds,
+          workOrderLinkedInvoiceNo: null,
+        },
+      }
+    );
+
+    //---------------------------------------------------------------
 
     // Add Sub Job Number
     if ([CMP_SINGER, CMP_SINHAGIRI].includes(workOrderFrom)) {
@@ -441,7 +394,7 @@ export const workOrderCompleteState = async (req, res) => {
     const { id } = req.params;
     const date = req.body.date;
 
-    const workOrder = await WorkOrder.findById(new ObjectId(id));
+    const workOrder = await WorkOrder.findById(new ObjectId(id)).populate("workOrderInvoice");
 
     if (!workOrder) {
       return res
@@ -454,6 +407,14 @@ export const workOrderCompleteState = async (req, res) => {
         .status(httpStatus.BAD_REQUEST)
         .json(
           ApiResponse.error(workorder_warning_code, workOrder_not_assigned)
+        );
+    }
+
+    if(workOrder.workOrderInvoice.invoiceStatus === INV_CREATED){
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(workorder_warning_code, invoice_should_close_first)
         );
     }
 

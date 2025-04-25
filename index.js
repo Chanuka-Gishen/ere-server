@@ -8,6 +8,8 @@ import mongoose from "mongoose";
 import ApiResponse from "./src/services/ApiResponse.js";
 import router from "./src/routes/index.js";
 
+// import './src/services/cronJobs.js';
+
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
