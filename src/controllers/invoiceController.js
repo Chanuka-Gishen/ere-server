@@ -8,8 +8,11 @@ import {
   bad_request_code,
   workorder_error_code,
   workorder_success_code,
+  workorder_warning_code,
 } from "../constants/statusCodes.js";
 import {
+  invoice_already_closed,
+  invoice_should_close_first,
   success_message,
   workOrder_chargers_updated,
   workOrder_not_found,
@@ -32,6 +35,7 @@ import {
   generateInvoicePDF,
   generateMultipleInvoicePDF,
 } from "../services/pdfServices.js";
+import { INV_CLOSED, INV_CREATED } from "../constants/inoviceStatus.js";
 
 // Add / Update Work Order Invoice
 export const addUpdateWorkOrderChargers = async (req, res) => {
@@ -248,6 +252,51 @@ export const updateInvoiceLinkedToContorller = async (req, res) => {
   return res
     .status(httpStatus.OK)
     .json(ApiResponse.response(workorder_success_code, success_message));
+};
+
+// Close invoice
+export const updateInvoiceStatus = async (req, res) => {
+  const { id } = req.query;
+  try {
+    const workOrder = await WorkOrder.findById(new ObjectId(id)).populate(
+      "workOrderInvoice"
+    );
+    if (!workOrder) {
+      return res
+        .status(httpStatus.NOT_FOUND)
+        .json(ApiResponse.error(workorder_error_code, workOrder_not_found));
+    }
+
+    if (workOrder.workOrderInvoice.invoiceStatus === INV_CLOSED) {
+      return res
+        .status(httpStatus.PRECONDITION_FAILED)
+        .json(ApiResponse.error(workorder_error_code, invoice_already_closed));
+    }
+
+    const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
+    const genInvoiceNo = generateInvoiceNumber(sequenceValue);
+
+    let workorders = [];
+
+    if (workOrder.workOrderLinked.length > 0) {
+      workorders = workOrder.workOrderLinked.map((id) => new ObjectId(id));
+    } else {
+      workorders = [new ObjectId(workOrder._id)];
+    }
+
+    await InvoiceModel.updateMany(
+      { invoiceLinkedWorkOrder: { $in: workorders } },
+      { $set: { invoiceNumber: genInvoiceNo, invoiceStatus: INV_CLOSED } }
+    );
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(workorder_success_code, success_message));
+  } catch (error) {
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
 };
 
 // Get all invoices
@@ -476,6 +525,14 @@ export const downloadInvoice = async (req, res) => {
         );
     }
 
+    if (workOrder.workOrderInvoice.invoiceStatus === INV_CREATED) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(workorder_warning_code, invoice_should_close_first)
+        );
+    }
+
     // Create a new PDF document
     const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
 
@@ -526,6 +583,14 @@ export const downloadTotalInvoice = async (req, res) => {
       return res
         .status(httpStatus.PRECONDITION_FAILED)
         .json(ApiResponse.error(workorder_error_code, workOrder_not_linked));
+    }
+
+    if (selectedWorkOrder.workOrderInvoice.invoiceStatus === INV_CREATED) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(workorder_warning_code, invoice_should_close_first)
+        );
     }
 
     const workOrders = await WorkOrder.find({

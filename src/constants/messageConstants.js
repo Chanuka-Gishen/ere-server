@@ -37,6 +37,9 @@ export const workOrder_deleted = "WorkOrder Deleted";
 export const workOrder_not_assigned = "Employees not assigned";
 export const workOrder_not_linked = "Multiple invoices not detected";
 
+export const invoice_should_close_first = "Invoice not closed yet";
+export const invoice_already_closed = "Invoice already closed";
+
 export const qr_code_name_missing = "QR code namer required";
 export const qr_not_found = "QR code not found";
 export const qr_not_available = "QR code not available";

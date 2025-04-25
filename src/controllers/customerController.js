@@ -16,6 +16,8 @@ import {
 import { ObjectId } from "mongodb";
 import { customerUpdateSchema } from "../schemas/customerUpdateScehema.js";
 import { isValidString } from "../services/commonServices.js";
+import Unit from "../models/unitModel.js";
+import LogsModel from "../models/logsModel.js";
 
 // Register customer
 export const registerCustomer = async (req, res) => {
@@ -259,4 +261,195 @@ export const getCustomer = async (req, res) => {
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
   }
+};
+
+// Get customers with recent upcoming maintainence - within one week
+export const GetUpcomingMaintainences = async (req, res) => {
+  const page = parseInt(req.query.page) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const skip = page * limit;
+
+  const today = new Date();
+
+  const nextWeek = new Date();
+  nextWeek.setDate(today.getDate() + 7);
+
+  try {
+    const result = await Unit.aggregate([
+      {
+        $match: {
+          unitNextMaintenanceDate: { $gte: today, $lte: nextWeek },
+        },
+      },
+      {
+        $sort: { unitNextMaintenanceDate: 1 },
+      },
+      {
+        $group: {
+          _id: "$unitCustomerId",
+          unit: { $first: "$$ROOT" },
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "_id",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      {
+        $unwind: "$customer",
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    const count = await Unit.countDocuments({
+      unitNextMaintenanceDate: { $gte: today, $lte: nextWeek },
+    });
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(customer_success_code, success_message, {
+        data: result,
+        count,
+      })
+    );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get customer remainders logs
+export const getCustomerRemainderLogs = async (req, res) => {
+  const page = parseInt(req.query.page) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const skip = page * limit;
+
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  const lastweek = new Date();
+  lastweek.setDate(today.getDate() - 7);
+  lastweek.setHours(0, 0, 0, 0);
+
+  try {
+    const result = await LogsModel.aggregate([
+      {
+        $match: {
+          logsType: "Remainder",
+          createdAt: {
+            $gte: lastweek,
+            $lte: today,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "logsCustomer",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      {
+        $unwind: "$customer",
+      },
+      {
+        $sort: { createdAt: 1 },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    const count = await LogsModel.countDocuments({
+      createdAt: { $gte: today, $lte: lastweek },
+    });
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(customer_success_code, success_message, {
+        data: result,
+        count,
+      })
+    );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Send remainders to customers - Cron Job
+export const SetRemindersToCustomers = async () => {
+  const today = new Date();
+
+  const monthStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    1,
+    0,
+    0,
+    0,
+    0
+  );
+
+  const nextWeek = new Date();
+  nextWeek.setDate(today.getDate() + 7);
+
+  const customersWithMaintenance = await Unit.aggregate([
+    {
+      $match: {
+        unitNextMaintenanceDate: { $gte: today, $lte: nextWeek },
+      },
+    },
+    {
+      $sort: { unitNextMaintenanceDate: 1 },
+    },
+    {
+      $group: {
+        _id: "$unitCustomerId",
+        nearestUnit: { $first: "$$ROOT" },
+      },
+    },
+  ]);
+
+  for (const record of customersWithMaintenance) {
+    const customerId = record._id;
+
+    const messageExists = await LogsModel.findOne({
+      logsCustomer: new ObjectId(customerId),
+      logsType: "Remainder",
+      createdAt: { $gte: monthStart, $lte: today },
+    });
+
+    if (!messageExists) {
+      // Send a new message
+      const newMessage = new LogsModel({
+        logsCustomer: record._id,
+        logsMessage: ``,
+        logsType: "Remainder",
+      });
+
+      await newMessage.save();
+      console.log("Remainder sent");
+    } else {
+      console.log("Remainder sent already");
+    }
+  }
+
+  return;
 };

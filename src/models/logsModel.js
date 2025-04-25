@@ -7,15 +7,12 @@ const logsSchema = new Schema({
     type: mongoose.Types.ObjectId,
     required: true,
   },
-  logsMessage: {
+  logsType:{
     type: String,
-    required: true,
+    enum: ['Remainder', 'Notification'],
+    required: true
   },
-  logsCreatedDate: {
-    type: Date,
-    default: Date.now(),
-  },
-});
+},{ timestamps: true });
 
 const LogsModel = mongoose.model("Logs", logsSchema);
 

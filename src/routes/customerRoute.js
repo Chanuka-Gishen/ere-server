@@ -2,6 +2,8 @@ import express from "express";
 import {
   getAllCustomers,
   getCustomer,
+  getCustomerRemainderLogs,
+  GetUpcomingMaintainences,
   registerCustomer,
   updateCustomer,
 } from "../controllers/customerController.js";
@@ -32,5 +34,7 @@ customerRoutes.put(
   updateUnitSerialNumber
 );
 customerRoutes.get("/unit/:id", [verifyToken], getCustomerUnits);
+customerRoutes.get("/recent-maintainence", [verifyToken, checkAdmin], GetUpcomingMaintainences)
+customerRoutes.get("/recent-logs", [verifyToken, checkAdmin], getCustomerRemainderLogs)
 
 export default customerRoutes;

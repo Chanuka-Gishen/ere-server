@@ -41,18 +41,14 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0112645675 (WorkShop)", 350, 100, { align: "left" });
+    .text("0773878080 | 0777102528", 350, 100, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0773878080 | 0716092000", 350, 120, { align: "left" });
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text("erengineersere@gmail.com", 350, 140, { align: "left" });
+    .text("erengineersere@gmail.com", 350, 120, { align: "left" });
 
   if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
-    doc.image(abansLogoPath, 50, 157, { width: 100 });
+    doc.image(abansLogoPath, 50, 137, { width: 100 });
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -430,18 +426,14 @@ export const generateMultipleInvoicePDF = (
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0112645675 (WorkShop)", 350, 100, { align: "left" });
+    .text("0773878080 | 0777102528", 350, 100, { align: "left" });
   doc
     .font("Helvetica")
     .fontSize(12)
-    .text("0773878080 | 0716092000", 350, 120, { align: "left" });
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .text("erengineersere@gmail.com", 350, 140, { align: "left" });
+    .text("erengineersere@gmail.com", 350, 120, { align: "left" });
 
   if ([CMP_SINGER, CMP_SINGER_DIR].includes(workOrder.workOrderFrom)) {
-    doc.image(abansLogoPath, 50, 157, { width: 100 });
+    doc.image(abansLogoPath, 50, 137, { width: 100 });
     doc
       .font("Helvetica")
       .fontSize(12)
