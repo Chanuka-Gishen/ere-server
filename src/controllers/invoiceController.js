@@ -273,6 +273,7 @@ export const updateInvoiceStatus = async (req, res) => {
         .json(ApiResponse.error(workorder_error_code, invoice_already_closed));
     }
 
+    await updateSequenceValue(INVOICE_SEQUENCE)
     const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
     const genInvoiceNo = generateInvoiceNumber(sequenceValue);
 
