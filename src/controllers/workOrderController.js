@@ -511,7 +511,9 @@ export const getWorkOrders = async (req, res) => {
           }),
         },
       },
-
+      {
+        $sort: { workOrderCreatedAt: -1 },
+      },
       // Skip and limit for pagination
       {
         $skip: skip,
@@ -519,10 +521,6 @@ export const getWorkOrders = async (req, res) => {
       {
         $limit: limit,
       },
-      {
-        $sort: { workOrderCreatedAt: -1 },
-      },
-
       // Lookup and filter customers
       {
         $lookup: {
