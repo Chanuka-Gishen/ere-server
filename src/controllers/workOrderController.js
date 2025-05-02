@@ -394,7 +394,9 @@ export const workOrderCompleteState = async (req, res) => {
     const { id } = req.params;
     const date = req.body.date;
 
-    const workOrder = await WorkOrder.findById(new ObjectId(id)).populate("workOrderInvoice");
+    const workOrder = await WorkOrder.findById(new ObjectId(id)).populate(
+      "workOrderInvoice"
+    );
 
     if (!workOrder) {
       return res
@@ -410,7 +412,7 @@ export const workOrderCompleteState = async (req, res) => {
         );
     }
 
-    if(workOrder.workOrderInvoice.invoiceStatus === INV_CREATED){
+    if (workOrder.workOrderInvoice.invoiceStatus === INV_CREATED) {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(
@@ -508,6 +510,17 @@ export const getWorkOrders = async (req, res) => {
             },
           }),
         },
+      },
+
+      // Skip and limit for pagination
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $sort: { workOrderCreatedAt: -1 },
       },
 
       // Lookup and filter customers
@@ -610,14 +623,6 @@ export const getWorkOrders = async (req, res) => {
           path: "$invoice",
           preserveNullAndEmptyArrays: true,
         },
-      },
-
-      // Skip and limit for pagination
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
       },
     ];
 
