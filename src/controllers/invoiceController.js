@@ -273,6 +273,7 @@ export const updateInvoiceStatus = async (req, res) => {
         .json(ApiResponse.error(workorder_error_code, invoice_already_closed));
     }
 
+    await updateSequenceValue(INVOICE_SEQUENCE)
     const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
     const genInvoiceNo = generateInvoiceNumber(sequenceValue);
 
@@ -385,6 +386,11 @@ export const getAllInvoices = async (req, res) => {
         $unwind: "$unit",
       },
       {
+        $sort: {
+          "invoiceNumber": -1,
+        },
+      },
+      {
         $project: {
           _id: "$_id",
           workOrderCode: "$workOrder.workOrderCode",
@@ -402,11 +408,6 @@ export const getAllInvoices = async (req, res) => {
           discount: 1,
           grandNetTotal: 1,
           grandTotal: 1,
-        },
-      },
-      {
-        $sort: {
-          "workOrder.workOrderCompletedDate": 1,
         },
       },
       {
