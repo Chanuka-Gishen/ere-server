@@ -477,7 +477,7 @@ export const getWorkOrders = async (req, res) => {
     const filterCustomerMobile = req.query.customerMobile;
     const filterJobCode = req.query.jobCode;
     const filterQrCode = req.query.qrCode;
-    const filterUnitSerial = req.query.unitSerial;
+    const filterInvoiceNumber = req.query.invoiceNumber;
 
     const matchConditionsCustomer = {
       $expr: { $eq: ["$_id", "$$customerId"] }, // Always match on customer ID
@@ -494,7 +494,7 @@ export const getWorkOrders = async (req, res) => {
     // Add condition for customerTel.mobile if it's valid
     if (isValidString(filterCustomerMobile)) {
       matchConditionsCustomer["customerTel.mobile"] = {
-        $regex: `^${filterCustomerMobile}`,
+        $regex: `${filterCustomerMobile}`,
         $options: "i",
       };
     }
@@ -510,16 +510,6 @@ export const getWorkOrders = async (req, res) => {
             },
           }),
         },
-      },
-      {
-        $sort: { workOrderCreatedAt: -1 },
-      },
-      // Skip and limit for pagination
-      {
-        $skip: skip,
-      },
-      {
-        $limit: limit,
       },
       // Lookup and filter customers
       {
@@ -550,12 +540,6 @@ export const getWorkOrders = async (req, res) => {
             {
               $match: {
                 $expr: { $eq: ["$_id", "$$unitId"] }, // Match unit ID
-                ...(isValidString(filterUnitSerial) && {
-                  unitSerialNo: {
-                    $regex: `^${filterUnitSerial}`,
-                    $options: "i",
-                  },
-                }),
               },
             },
             {
@@ -609,7 +593,19 @@ export const getWorkOrders = async (req, res) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", "$$invoiceId"] }, // Match invoice ID
+                $and: [
+                  { $expr: { $eq: ["$_id", "$$invoiceId"] } }, // Match invoice ID
+                  ...(isValidString(filterInvoiceNumber)
+                    ? [
+                        {
+                          invoiceNumber: {
+                            $regex: `${filterInvoiceNumber}`,
+                            $options: "i",
+                          },
+                        },
+                      ]
+                    : []),
+                ],
               },
             },
           ],
@@ -619,8 +615,20 @@ export const getWorkOrders = async (req, res) => {
       {
         $unwind: {
           path: "$invoice",
-          preserveNullAndEmptyArrays: true,
+          preserveNullAndEmptyArrays: isValidString(filterInvoiceNumber)
+            ? false
+            : true,
         },
+      },
+      {
+        $sort: { workOrderCreatedAt: -1 },
+      },
+      // Skip and limit for pagination
+      {
+        $skip: skip,
+      },
+      {
+        $limit: limit,
       },
     ];
 
@@ -682,12 +690,6 @@ export const getWorkOrders = async (req, res) => {
             {
               $match: {
                 $expr: { $eq: ["$_id", "$$unitId"] }, // Match unit ID
-                ...(isValidString(filterUnitSerial) && {
-                  unitSerialNo: {
-                    $regex: `^${filterUnitSerial}`,
-                    $options: "i",
-                  },
-                }),
               },
             },
             {
@@ -741,7 +743,19 @@ export const getWorkOrders = async (req, res) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", "$$invoiceId"] }, // Match invoice ID
+                $and: [
+                  { $expr: { $eq: ["$_id", "$$invoiceId"] } }, // Match invoice ID
+                  ...(isValidString(filterInvoiceNumber)
+                    ? [
+                        {
+                          invoiceNumber: {
+                            $regex: `${filterInvoiceNumber}`,
+                            $options: "i",
+                          },
+                        },
+                      ]
+                    : []),
+                ],
               },
             },
           ],
@@ -751,7 +765,9 @@ export const getWorkOrders = async (req, res) => {
       {
         $unwind: {
           path: "$invoice",
-          preserveNullAndEmptyArrays: true,
+          preserveNullAndEmptyArrays: isValidString(filterInvoiceNumber)
+            ? false
+            : true,
         },
       },
       {
