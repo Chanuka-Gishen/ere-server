@@ -35,7 +35,11 @@ export const workOrder_chargers_updated = "Chargers updated";
 export const workOrder_invoice_not_created = "Invoice not created yet";
 export const workOrder_deleted = "WorkOrder Deleted";
 export const workOrder_not_assigned = "Employees not assigned";
+export const workOrder_linked_list_invalid =
+  "Atleast two workorders required to link";
 export const workOrder_not_linked = "Multiple invoices not detected";
+export const workOrder_cannot_linked_with_closed_invoices =
+  "Cannot link work orders with closed invoice status";
 
 export const invoice_should_close_first = "Invoice not closed yet";
 export const invoice_already_closed = "Invoice already closed";

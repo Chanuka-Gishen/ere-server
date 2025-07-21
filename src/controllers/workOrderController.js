@@ -4,6 +4,8 @@ import ApiResponse from "../services/ApiResponse.js";
 import {
   bad_request_code,
   customer_error_code,
+  error_code,
+  info_code,
   workorder_error_code,
   workorder_success_code,
   workorder_warning_code,
@@ -22,10 +24,12 @@ import {
   invoice_should_close_first,
   success_message,
   workOrder_assignees_required,
+  workOrder_cannot_linked_with_closed_invoices,
   workOrder_completed,
   workOrder_deleted,
   workOrder_empty_images,
   workOrder_images_missing,
+  workOrder_linked_list_invalid,
   workOrder_not_assigned,
   workOrder_not_found,
   workOrder_tip_missing,
@@ -56,7 +60,7 @@ import { ADMIN_ROLE, HELPER_ROLE, TECHNICIAN_ROLE } from "../constants/role.js";
 import { WorkOrderAddSchema } from "../schemas/WorkOrderAddSchema.js";
 import { getSequenceValue, updateSequenceValue } from "./sequenceController.js";
 import { jobLinkListFilterSchema } from "../schemas/jobLinkListFilterSchema.js";
-import { INV_CREATED } from "../constants/inoviceStatus.js";
+import { INV_CLOSED, INV_CREATED } from "../constants/inoviceStatus.js";
 
 // Create New Job
 export const createJob = async (req, res) => {
@@ -168,53 +172,63 @@ export const updateWorkOrderDetails = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
+    if (
+      workOrder.workOrderLinked.length === 0 &&
+      workOrderLinkedJobs.length === 1
+    ) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(error_code, workOrder_linked_list_invalid));
+    }
+
     let mainInvoiceNo = null;
 
     //-----------------------Update Invoices-------------------------
 
     const isNewLinkedJobs =
-      workOrder.workOrderLinked.length < workOrderLinkedJobs.length;
+      workOrderLinkedJobs.length > workOrder.workOrderLinked.length;
     const isDeletedJobs =
       workOrder.workOrderLinked.length > workOrderLinkedJobs.length;
 
-    const linkedObjectIds = workOrderLinkedJobs.map(
+    const previousLinkedWo = workOrder.workOrderLinked.map(
       (job) => new ObjectId(job._id)
     );
 
-    if (isNewLinkedJobs && workOrder.workOrderLinked.length > 0) {
-      const existingObjectIds = workOrder.workOrderLinked.map(
-        (id) => new ObjectId(id)
+    const linkedObjectIds =
+      workOrderLinkedJobs.length > 0
+        ? workOrderLinkedJobs.map((job) => new ObjectId(job._id))
+        : [];
+
+    if (isNewLinkedJobs) {
+      console.log("new linked wos");
+
+      const newLinkedWorkorders = await WorkOrder.find({
+        _id: { $in: linkedObjectIds },
+      }).populate("workOrderInvoice");
+
+      const workOrdersWithClosedInvoices = newLinkedWorkorders.filter(
+        (wo) =>
+          wo.workOrderInvoice &&
+          wo.workOrderInvoice.invoiceStatus === INV_CLOSED
       );
 
-      const invoicesList = await InvoiceModel.find({
-        invoiceLinkedWorkOrder: { $in: existingObjectIds },
-      });
-
-      // Extract the invoiceNo fields
-      const invoiceNumbers = invoicesList.map(
-        (invoice) => invoice.invoiceNumber
-      );
-
-      // Calculate the most repetitive value
-      const frequencyMap = {};
-
-      invoiceNumbers.forEach((value) => {
-        if (value !== null) {
-          frequencyMap[value] = (frequencyMap[value] || 0) + 1;
-        }
-      });
-
-      const mostRepetitiveValue = Object.keys(frequencyMap).reduce((a, b) =>
-        frequencyMap[a] > frequencyMap[b] ? a : b
-      );
-
-      mainInvoiceNo = mostRepetitiveValue;
-
-      await InvoiceModel.updateMany(
-        { invoiceLinkedWorkOrder: { $in: linkedObjectIds } },
-        { $set: { invoiceNumber: mainInvoiceNo } }
-      );
+      if (workOrdersWithClosedInvoices.length > 0) {
+        return res
+          .status(httpStatus.BAD_REQUEST)
+          .json(
+            ApiResponse.error(
+              info_code,
+              workOrder_cannot_linked_with_closed_invoices
+            )
+          );
+      }
     }
+
+    let updateWorkorderIds =
+      previousLinkedWo.length > 0 ? previousLinkedWo : linkedObjectIds;
+
+    let updatedWoLinkedList =
+      workOrderLinkedJobs.length === 1 ? [] : linkedObjectIds;
 
     if (isDeletedJobs) {
       const deletedIds = workOrder.workOrderLinked.filter(
@@ -230,10 +244,10 @@ export const updateWorkOrderDetails = async (req, res) => {
     }
 
     await WorkOrder.updateMany(
-      { _id: { $in: linkedObjectIds } },
+      { _id: { $in: updateWorkorderIds } },
       {
         $set: {
-          workOrderLinked: linkedObjectIds,
+          workOrderLinked: updatedWoLinkedList,
           workOrderLinkedInvoiceNo: null,
         },
       }
@@ -404,14 +418,6 @@ export const workOrderCompleteState = async (req, res) => {
         .json(ApiResponse.error(bad_request_code, workOrder_not_found));
     }
 
-    if (workOrder.workOrderAssignedEmployees.length === 0) {
-      return res
-        .status(httpStatus.BAD_REQUEST)
-        .json(
-          ApiResponse.error(workorder_warning_code, workOrder_not_assigned)
-        );
-    }
-
     if (workOrder.workOrderInvoice.invoiceStatus === INV_CREATED) {
       return res
         .status(httpStatus.BAD_REQUEST)
@@ -420,39 +426,106 @@ export const workOrderCompleteState = async (req, res) => {
         );
     }
 
+    let linkedWorkordersIds = [];
+
+    let isAssignedEmps = true;
+    let incompleteWorkorderCode = workOrder.workOrderCode;
+
+    if (workOrder.workOrderLinked.length > 0) {
+      linkedWorkordersIds = workOrder.workOrderLinked.map(
+        (wo) => new ObjectId(wo)
+      );
+
+      const linkedWorkordersWithoutEmpsAssigned = await WorkOrder.find({
+        _id: { $in: linkedWorkordersIds },
+        workOrderAssignedEmployees: [],
+      });
+
+      if (linkedWorkordersWithoutEmpsAssigned.length > 0) {
+        isAssignedEmps = false;
+        incompleteWorkorderCode =
+          linkedWorkordersWithoutEmpsAssigned[0].workOrderCode;
+      }
+    } else {
+      if (workOrder.workOrderAssignedEmployees.length === 0) {
+        isAssignedEmps = false;
+      }
+    }
+
+    if (!isAssignedEmps) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(
+          ApiResponse.error(
+            workorder_warning_code,
+            `${workOrder_not_assigned} - ${incompleteWorkorderCode}`
+          )
+        );
+    }
+
     const completedDate = date ? new Date(date) : new Date();
 
-    workOrder.workOrderStatus = COMPLETED_STATUS;
-    workOrder.workOrderCompletedDate = completedDate;
+    const updateWorkordersList =
+      linkedWorkordersIds.length > 0
+        ? linkedWorkordersIds
+        : [new ObjectId(workOrder._id)];
 
-    const savedWorkOrder = await workOrder.save();
-
-    if (savedWorkOrder.workOrderType != WORK_ORD_REPAIR) {
-      const unit = await Unit.findById(
-        new ObjectId(savedWorkOrder.workOrderUnitReference)
-      );
-
-      if (!unit) {
-        return res
-          .status(httpStatus.NOT_FOUND)
-          .json(ApiResponse.error(bad_request_code, customer_unit_not_found));
+    await WorkOrder.updateMany(
+      { _id: { $in: updateWorkordersList } },
+      {
+        workOrderStatus: COMPLETED_STATUS,
+        workOrderCompletedDate: completedDate,
       }
+    );
 
-      unit.unitLastMaintenanceDate =
-        savedWorkOrder.workOrderType === WORK_ORD_SERVICE
-          ? savedWorkOrder.workOrderCompletedDate
-          : null;
-      // After 4 months the next service
-      unit.unitNextMaintenanceDate = new Date().setMonth(
-        new Date().getMonth() + 4
-      );
+    const linkedWorkorders = await WorkOrder.find({
+      _id: { $in: updateWorkordersList },
+    });
 
-      if (savedWorkOrder.workOrderType === WORK_ORD_INSTALLATION) {
-        unit.unitInstalledDate = savedWorkOrder.workOrderCompletedDate;
+    for (const linkedWorkorder of linkedWorkorders) {
+      if (linkedWorkorder.workOrderType != WORK_ORD_REPAIR) {
+        const unit = await Unit.findById(
+          new ObjectId(linkedWorkorder.workOrderUnitReference)
+        );
+
+        if (!unit) {
+          return res
+            .status(httpStatus.NOT_FOUND)
+            .json(ApiResponse.error(bad_request_code, customer_unit_not_found));
+        }
+
+        if (linkedWorkorder.workOrderType === WORK_ORD_SERVICE) {
+          const latestLastMaintenanceDate =
+            linkedWorkorder.workOrderType === WORK_ORD_SERVICE
+              ? linkedWorkorder.workOrderCompletedDate
+              : unit.unitLastMaintenanceDate;
+
+          const recentMaintenanceDate = latestLastMaintenanceDate
+            ? new Date(latestLastMaintenanceDate)
+            : new Date();
+
+          unit.unitLastMaintenanceDate = recentMaintenanceDate;
+
+          // After 4 months the next service
+          unit.unitNextMaintenanceDate = new Date(
+            recentMaintenanceDate
+          ).setMonth(new Date(recentMaintenanceDate).getMonth() + 4);
+        }
+
+        if (linkedWorkorder.workOrderType === WORK_ORD_INSTALLATION) {
+          unit.unitInstalledDate = linkedWorkorder.workOrderCompletedDate;
+        }
+
+        await unit.save();
       }
-
-      await unit.save();
     }
+
+    // const completedDate = date ? new Date(date) : new Date();
+
+    // workOrder.workOrderStatus = COMPLETED_STATUS;
+    // workOrder.workOrderCompletedDate = completedDate;
+
+    // const savedWorkOrder = await workOrder.save();
 
     return res
       .status(httpStatus.OK)
@@ -812,7 +885,7 @@ export const GetWorkOrdersByUnit = async (req, res) => {
       workOrderUnitReference: new ObjectId(unit._id),
     })
       .populate("workOrderInvoice")
-      .sort({ workOrderScheduledDate: 1 })
+      .sort({ workOrderScheduledDate: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -1276,7 +1349,7 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
 
     const workOrders = await WorkOrder.find({
       workOrderCustomerId: new ObjectId(customer._id),
-      //workOrderStatus: CREATED_STATUS,
+      workOrderStatus: CREATED_STATUS,
     }).populate({
       path: "workOrderLinked",
       select: "_id workOrderCode workOrderType",
