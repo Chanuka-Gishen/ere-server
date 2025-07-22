@@ -472,8 +472,8 @@ export const generateMultipleInvoicePDF = (
       .font("Helvetica")
       .fontSize(12)
       .text(
-        workOrder.workOrderLinkedInvoiceNo
-          ? workOrder.workOrderLinkedInvoiceNo
+        workOrder.workOrderInvoice.invoiceNumber
+          ? workOrder.workOrderInvoice.invoiceNumber
           : " - ",
         420,
         y,
