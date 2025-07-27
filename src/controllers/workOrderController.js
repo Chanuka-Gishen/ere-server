@@ -43,6 +43,7 @@ import {
   updateDateInWorkOrderCode,
 } from "../services/commonServices.js";
 import {
+  CMP_LIST,
   CMP_SINGER,
   CMP_SINHAGIRI,
   COMPLETED_STATUS,
@@ -50,6 +51,7 @@ import {
   WORK_ORD_INSTALLATION,
   WORK_ORD_REPAIR,
   WORK_ORD_SERVICE,
+  WORK_ORD_TYPE,
 } from "../constants/commonConstants.js";
 import { WorkOrderAssignSchema } from "../schemas/woAssignEmployeeSchema.js";
 import {
@@ -551,38 +553,30 @@ export const getWorkOrders = async (req, res) => {
     const filterJobCode = req.query.jobCode;
     const filterQrCode = req.query.qrCode;
     const filterInvoiceNumber = req.query.invoiceNumber;
+    const filterByFrom = req.query.company;
+    const filterByType = req.query.type;
 
-    const matchConditionsCustomer = {
-      $expr: { $eq: ["$_id", "$$customerId"] }, // Always match on customer ID
-    };
+    const query = {};
 
-    // Add condition for customerName if it's valid
-    if (isValidString(filterCustomerName)) {
-      matchConditionsCustomer.customerName = {
-        $regex: `${filterCustomerName}`,
-        $options: "i", // Add case-insensitive option if needed
+    if (isValidString(filterJobCode)) {
+      query.workOrderCode = {
+        $regex: `${filterJobCode}`,
+        $options: "i",
       };
     }
 
-    // Add condition for customerTel.mobile if it's valid
-    if (isValidString(filterCustomerMobile)) {
-      matchConditionsCustomer["customerTel.mobile"] = {
-        $regex: `${filterCustomerMobile}`,
-        $options: "i",
-      };
+    if (isValidString(filterByFrom) && CMP_LIST.includes(filterByFrom)) {
+      query.workOrderFrom = filterByFrom;
+    }
+
+    if (isValidString(filterByType) && WORK_ORD_TYPE.includes(filterByType)) {
+      query.workOrderType = filterByType;
     }
 
     const pipeline = [
       // Match stage for filtering by job code
       {
-        $match: {
-          ...(isValidString(filterJobCode) && {
-            workOrderCode: {
-              $regex: `${filterJobCode}`,
-              $options: "i",
-            },
-          }),
-        },
+        $match: query,
       },
       // Lookup and filter customers
       {
@@ -591,7 +585,21 @@ export const getWorkOrders = async (req, res) => {
           let: { customerId: "$workOrderCustomerId" }, // Define variables
           pipeline: [
             {
-              $match: matchConditionsCustomer,
+              $match: {
+                $expr: { $eq: ["$_id", "$$customerId"] },
+                ...(isValidString(filterCustomerName) && {
+                  customerName: {
+                    $regex: `${filterCustomerName}`,
+                    $options: "i",
+                  },
+                }),
+                ...(isValidString(filterCustomerMobile) && {
+                  "customerTel.mobile": {
+                    $regex: `${filterCustomerMobile}`,
+                    $options: "i",
+                  },
+                }),
+              },
             },
           ],
           as: "customer",
@@ -658,7 +666,7 @@ export const getWorkOrders = async (req, res) => {
           path: "$unit",
         },
       },
-      // Lookup invoices
+      // // Lookup invoices
       {
         $lookup: {
           from: "invoices",
@@ -693,6 +701,10 @@ export const getWorkOrders = async (req, res) => {
             : true,
         },
       },
+    ];
+
+    const resultPipeline = [
+      ...pipeline,
       {
         $sort: { workOrderCreatedAt: -1 },
       },
@@ -705,148 +717,16 @@ export const getWorkOrders = async (req, res) => {
       },
     ];
 
-    const data = await WorkOrder.aggregate(pipeline);
-
-    const countDocuments = await WorkOrder.aggregate([
-      // Match stage for filtering by job code
-      {
-        $match: {
-          ...(isValidString(filterJobCode) && {
-            workOrderCode: {
-              $regex: `${filterJobCode}`,
-              $options: "i",
-            },
-          }),
-        },
-      },
-
-      // Lookup and filter customers
-      {
-        $lookup: {
-          from: "customers",
-          let: { customerId: "$workOrderCustomerId" }, // Define variables
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", "$$customerId"] }, // Match customer ID
-                ...(isValidString(filterCustomerName) && {
-                  customerName: {
-                    $regex: `${filterCustomerName}`,
-                    $options: "i",
-                  },
-                }),
-                ...(isValidString(filterCustomerMobile) && {
-                  "customerTel.mobile": {
-                    $regex: `^${filterCustomerMobile}`,
-                    $options: "i",
-                  },
-                }),
-              },
-            },
-          ],
-          as: "customer",
-        },
-      },
-      {
-        $unwind: {
-          path: "$customer",
-        },
-      },
-
-      // Lookup and filter units
-      {
-        $lookup: {
-          from: "units",
-          as: "unit",
-          let: { unitId: "$workOrderUnitReference" }, // Define variables
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", "$$unitId"] }, // Match unit ID
-              },
-            },
-            {
-              $lookup: {
-                from: "qrcodes",
-                as: "unitQrCode",
-                let: { qrCodeId: "$unitQrCode" }, // Correctly reference the unitQrCode field from the matched unit
-                pipeline: [
-                  {
-                    $match: {
-                      $and: [
-                        { $expr: { $eq: ["$_id", "$$qrCodeId"] } },
-                        ...(isValidString(filterQrCode)
-                          ? [
-                              {
-                                qrCodeName: {
-                                  $regex: `${filterQrCode}`,
-                                  $options: "i",
-                                },
-                              },
-                            ]
-                          : []),
-                      ],
-                    },
-                  },
-                  { $project: { qrCodeName: 1, _id: 0 } }, // Project only qrCodeName
-                ],
-              },
-            },
-            {
-              $unwind: {
-                path: "$unitQrCode",
-                preserveNullAndEmptyArrays: isValidString(filterQrCode)
-                  ? false
-                  : true, // Optional: to keep documents without a QR
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: {
-          path: "$unit",
-        },
-      },
-      // Lookup invoices
-      {
-        $lookup: {
-          from: "invoices",
-          let: { invoiceId: "$workOrderInvoice" }, // Define variables
-          pipeline: [
-            {
-              $match: {
-                $and: [
-                  { $expr: { $eq: ["$_id", "$$invoiceId"] } }, // Match invoice ID
-                  ...(isValidString(filterInvoiceNumber)
-                    ? [
-                        {
-                          invoiceNumber: {
-                            $regex: `${filterInvoiceNumber}`,
-                            $options: "i",
-                          },
-                        },
-                      ]
-                    : []),
-                ],
-              },
-            },
-          ],
-          as: "invoice",
-        },
-      },
-      {
-        $unwind: {
-          path: "$invoice",
-          preserveNullAndEmptyArrays: isValidString(filterInvoiceNumber)
-            ? false
-            : true,
-        },
-      },
+    const countPipeline = [
+      ...pipeline,
       {
         $count: "totalCount",
       },
-    ]);
+    ];
+
+    const data = await WorkOrder.aggregate(resultPipeline);
+
+    const countDocuments = await WorkOrder.aggregate(countPipeline);
 
     const count = countDocuments.length > 0 ? countDocuments[0].totalCount : 0;
 

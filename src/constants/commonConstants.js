@@ -8,6 +8,11 @@ export const COMPLETED_STATUS = "Completed";
 export const WORK_ORD_SERVICE = "Service";
 export const WORK_ORD_REPAIR = "Repair";
 export const WORK_ORD_INSTALLATION = "Installation";
+export const WORK_ORD_TYPE = [
+  WORK_ORD_SERVICE,
+  WORK_ORD_REPAIR,
+  WORK_ORD_INSTALLATION,
+];
 
 export const INSTALLATION_SEQ = "installation_sequence";
 export const SERVICE_SEQ = "service_sequence";
@@ -22,3 +27,10 @@ export const CMP_SINGER = "Singer";
 export const CMP_SINGER_DIR = "Singer Direct Pay";
 export const CMP_SINHAGIRI = "Singhagiri";
 export const CMP_SINHAGIRI_DIR = "Singhagiri Direct Pay";
+export const CMP_LIST = [
+  CMP_ERE,
+  CMP_SINGER,
+  CMP_SINGER_DIR,
+  CMP_SINHAGIRI,
+  CMP_SINHAGIRI_DIR,
+];

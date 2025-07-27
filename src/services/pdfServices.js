@@ -663,8 +663,9 @@ export const generateMultipleInvoicePDF = (
     .fontSize(11)
     .text("Item", 50, y)
     //.text("Description", 150, 320)
-    .text("Qty", 280, y)
-    .text("Unit Price", 350, y)
+    .text("QR", 280, y)
+    .text("Qty", 350, y)
+    .text("Unit Price", 390, y)
     .text("Total Price", 450, y, { align: "right" });
 
   incrementYAndCheck();
@@ -678,8 +679,9 @@ export const generateMultipleInvoicePDF = (
       .fontSize(11)
       .text(item.item, 50, y, { width: 200 })
       //.text(item.itemDescription, 150, y)
-      .text(item.itemQty, 280, y, { width: 100 })
-      .text(formatCurrency(item.itemGrossPrice), 350, y, { width: 100 })
+      .text(item.qrCode, 280, y, { width: 100 })
+      .text(item.itemQty, 350, y, { width: 100 })
+      .text(formatCurrency(item.itemGrossPrice), 390, y, { width: 100 })
       .text(formatCurrency(item.itemQty * item.itemGrossPrice), 450, y, {
         align: "right",
         width: 100,
