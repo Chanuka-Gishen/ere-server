@@ -273,7 +273,7 @@ export const updateInvoiceStatus = async (req, res) => {
         .json(ApiResponse.error(workorder_error_code, invoice_already_closed));
     }
 
-    await updateSequenceValue(INVOICE_SEQUENCE)
+    await updateSequenceValue(INVOICE_SEQUENCE);
     const sequenceValue = await getSequenceValue(INVOICE_SEQUENCE);
     const genInvoiceNo = generateInvoiceNumber(sequenceValue);
 
@@ -387,7 +387,7 @@ export const getAllInvoices = async (req, res) => {
       },
       {
         $sort: {
-          "invoiceNumber": -1,
+          invoiceNumber: -1,
         },
       },
       {
@@ -597,7 +597,15 @@ export const downloadTotalInvoice = async (req, res) => {
     const workOrders = await WorkOrder.find({
       _id: { $in: selectedWorkOrder.workOrderLinked },
       workOrderInvoice: { $exists: true, $ne: null },
-    }).populate("workOrderInvoice");
+    })
+      .populate("workOrderInvoice")
+      .populate({
+        path: "workOrderUnitReference",
+        populate: {
+          path: "unitQrCode",
+          model: "QRCode",
+        },
+      });
 
     const invoice = {
       items: [],
@@ -610,9 +618,16 @@ export const downloadTotalInvoice = async (req, res) => {
     };
 
     for (const job of workOrders) {
+      const invoices = job.workOrderInvoice.items.map((item) => ({
+        item: item.item,
+        itemQty: item.itemQty,
+        itemGrossPrice: item.itemGrossPrice,
+        qrCode: job.workOrderUnitReference.unitQrCode?.qrCodeName ?? " - ",
+      }));
+
       // Update items
-      if (job.workOrderInvoice.items) {
-        invoice.items.push(...job.workOrderInvoice.items);
+      if (invoices.length > 0) {
+        invoice.items.push(...invoices);
       }
 
       // Update serviceCharges
@@ -633,6 +648,8 @@ export const downloadTotalInvoice = async (req, res) => {
       // Update grandTotal
       invoice.grandTotal += job.workOrderInvoice.grandTotal;
     }
+
+    console.log(invoice);
 
     // Create a new PDF document
     const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });
