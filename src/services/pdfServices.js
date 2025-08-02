@@ -106,7 +106,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
       });
 
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
+    doc.font("Helvetica-Bold").fontSize(12).text("Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -148,7 +148,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     });
     incrementYAndCheck();
 
-    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
+    doc.font("Helvetica-Bold").fontSize(12).text("Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -225,8 +225,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
-
-      .text("Completed Date #", 420, y, { align: "right" });
+      .text("Date#", 420, y, { align: "right" });
 
     incrementYAndCheck();
 
@@ -486,7 +485,7 @@ export const generateMultipleInvoicePDF = (
       .fontSize(12)
       .text(`${workOrder.workOrderLinked.length}`, 200, y);
     incrementYAndCheck();
-    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
+    doc.font("Helvetica-Bold").fontSize(12).text("Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -531,7 +530,7 @@ export const generateMultipleInvoicePDF = (
       .text(
         workOrder.workOrderLinkedInvoiceNo
           ? workOrder.workOrderLinkedInvoiceNo
-          : " - ",
+          : workOrder.workOrderInvoice?.invoiceNumber ?? " - ",
         420,
         y,
         {
@@ -540,7 +539,7 @@ export const generateMultipleInvoicePDF = (
       );
     incrementYAndCheck();
 
-    doc.font("Helvetica-Bold").fontSize(12).text("Completed Date", 50, y);
+    doc.font("Helvetica-Bold").fontSize(12).text("Date", 50, y);
     doc
       .font("Helvetica")
       .fontSize(12)
@@ -603,7 +602,7 @@ export const generateMultipleInvoicePDF = (
       .font("Helvetica-Bold")
       .fontSize(12)
 
-      .text("Completed Date #", 420, y, { align: "right" });
+      .text("Date#", 420, y, { align: "right" });
 
     incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Unit Reference", 50, y);
