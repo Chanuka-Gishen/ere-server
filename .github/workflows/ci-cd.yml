@@ -32,7 +32,7 @@ jobs:
       - name: Stop service
         run: cd ~/server/ere-server && sudo systemctl stop ere-server.service
       - name: Delete old files
-        run: cd /home/ec2-user/server/ere-server && sudo rm -r README.md  index.js  package.json  src  yarn.lock node_modules  package-lock.json
+        run: cd /home/ec2-user/server/ere-server && sudo rm -r README.md index.js package.json src node_modules package-lock.json
       - name: Copy files
         run: cd /home/ec2-user/actions-runner/_work/ere-server && sudo cp -r ere-server/* /home/ec2-user/server/ere-server
       - name: Change owner
