@@ -378,17 +378,24 @@ export const getTotalTipsForLastMonth = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const today = new Date();
+
     // Get the start date of last month ( 20 )
     const lastMonthStartDate = new Date();
-    lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 2);
     lastMonthStartDate.setDate(20);
     lastMonthStartDate.setHours(0, 0, 0, 0);
 
     // Get the end date of last month ( 19 )
     const lastMonthEndDate = new Date();
-    lastMonthEndDate.setMonth(lastMonthEndDate.getMonth() - 1);
     lastMonthEndDate.setDate(19); // Set to last day of previous month
     lastMonthEndDate.setHours(23, 59, 59, 999);
+
+    if (today.getDate() <= 19) {
+      lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 2);
+      lastMonthEndDate.setMonth(lastMonthEndDate.getMonth() - 1);
+    } else {
+      lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 1);
+    }
 
     // Aggregation pipeline to calculate total tips for last month
     const result = await WorkOrder.aggregate([
@@ -438,13 +445,18 @@ export const getTotalTipsForCurrentMonth = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get the start date of last month
+    const today = new Date();
+
+    // Get the start date of current month
     const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 1);
     startDate.setDate(20);
     startDate.setHours(0, 0, 0, 0);
 
-    // Get the end date of last month
+    if (today.getDate() <= 19) {
+      startDate.setMonth(startDate.getMonth() - 1);
+    }
+
+    // Get the end date of current month
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
 
