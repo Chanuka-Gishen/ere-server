@@ -496,22 +496,21 @@ export const workOrderCompleteState = async (req, res) => {
             .json(ApiResponse.error(bad_request_code, customer_unit_not_found));
         }
 
-        if (linkedWorkorder.workOrderType === WORK_ORD_SERVICE) {
+        const isServiceOrInst = [
+          WORK_ORD_INSTALLATION,
+          WORK_ORD_SERVICE,
+        ].includes(linkedWorkorder.workOrderType);
+
+        if (isServiceOrInst) {
           const latestLastMaintenanceDate =
-            linkedWorkorder.workOrderType === WORK_ORD_SERVICE
-              ? linkedWorkorder.workOrderCompletedDate
-              : unit.unitLastMaintenanceDate;
+            linkedWorkorder.workOrderCompletedDate;
 
-          const recentMaintenanceDate = latestLastMaintenanceDate
-            ? new Date(latestLastMaintenanceDate)
-            : new Date();
-
-          unit.unitLastMaintenanceDate = recentMaintenanceDate;
+          unit.unitLastMaintenanceDate = new Date(latestLastMaintenanceDate);
 
           // After 4 months the next service
           unit.unitNextMaintenanceDate = new Date(
-            recentMaintenanceDate
-          ).setMonth(new Date(recentMaintenanceDate).getMonth() + 4);
+            latestLastMaintenanceDate
+          ).setMonth(new Date(latestLastMaintenanceDate).getMonth() + 4);
         }
 
         if (linkedWorkorder.workOrderType === WORK_ORD_INSTALLATION) {
@@ -522,18 +521,10 @@ export const workOrderCompleteState = async (req, res) => {
       }
     }
 
-    // const completedDate = date ? new Date(date) : new Date();
-
-    // workOrder.workOrderStatus = COMPLETED_STATUS;
-    // workOrder.workOrderCompletedDate = completedDate;
-
-    // const savedWorkOrder = await workOrder.save();
-
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, workOrder_completed));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
