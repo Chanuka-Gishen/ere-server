@@ -301,7 +301,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc
       .font("Helvetica")
       .fontSize(11)
-      .text(item.item, 50, y, { width: 300 })
+      .text(item.item, 50, y, { width: 280 })
       //.text(item.itemDescription, 150, y)
       .text(item.itemQty, 280, y, { width: 100 })
       .text(formatCurrency(item.itemGrossPrice), 350, y, { width: 100 })
