@@ -502,14 +502,14 @@ export const getTotalCostStats = async (req, res) => {
   }
 };
 
-// Get invoice download file
+// Download single invoice
 export const downloadInvoice = async (req, res) => {
   try {
     const { id } = req.params; // Work Order Id
 
     const workOrder = await WorkOrder.findById(new ObjectId(id))
       .populate("workOrderCustomerId")
-      .populate("workOrderUnitReference")
+      .populate({ path: "workOrderUnitReference", populate: "unitQrCode" })
       .populate("workOrderInvoice");
 
     if (!workOrder) {
@@ -564,6 +564,7 @@ export const downloadInvoice = async (req, res) => {
   }
 };
 
+// Download liked invoice
 export const downloadTotalInvoice = async (req, res) => {
   try {
     const { id } = req.params; // Work Order Id
@@ -648,8 +649,6 @@ export const downloadTotalInvoice = async (req, res) => {
       // Update grandTotal
       invoice.grandTotal += job.workOrderInvoice.grandTotal;
     }
-
-    console.log(invoice);
 
     // Create a new PDF document
     const doc = new PDFDocument({ bufferPages: true, size: "A4", margin: 50 });

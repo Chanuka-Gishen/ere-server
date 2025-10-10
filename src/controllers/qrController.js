@@ -29,22 +29,30 @@ export const createBulkQrCodes = async (req, res) => {
     }
 
     qrAvailable.constantIsAvailable = false;
-
-    const savedConstant = await qrAvailable.save();
+    await qrAvailable.save();
 
     const uploadedCodes = await uploadQrCodes();
 
     await QRCodeModel.insertMany(uploadedCodes);
 
-    savedConstant.constantIsAvailable = true;
-
-    await savedConstant.save();
+    await ConstantModel.findOneAndUpdate(
+      {
+        constantCode: CONST_CODE_QR,
+      },
+      { $set: { constantIsAvailable: true } }
+    );
 
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.error(qr_success_code, qr_generated));
   } catch (error) {
     console.log(error);
+    await ConstantModel.findOneAndUpdate(
+      {
+        constantCode: CONST_CODE_QR,
+      },
+      { $set: { constantIsAvailable: true } }
+    );
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
