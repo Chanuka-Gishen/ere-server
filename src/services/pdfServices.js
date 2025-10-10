@@ -106,6 +106,13 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
       });
 
     incrementYAndCheck();
+    doc.font("Helvetica-Bold").fontSize(12).text("QR Number", 50, y);
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(unit.unitQrCode ? unit.unitQrCode.qrCodeName : "-", 200, y);
+
+    incrementYAndCheck();
     doc.font("Helvetica-Bold").fontSize(12).text("Date", 50, y);
     doc
       .font("Helvetica")
@@ -294,7 +301,7 @@ export const generateInvoicePDF = (doc, customer, unit, workOrder, invoice) => {
     doc
       .font("Helvetica")
       .fontSize(11)
-      .text(item.item, 50, y, { width: 200 })
+      .text(item.item, 50, y, { width: 300 })
       //.text(item.itemDescription, 150, y)
       .text(item.itemQty, 280, y, { width: 100 })
       .text(formatCurrency(item.itemGrossPrice), 350, y, { width: 100 })
@@ -394,6 +401,8 @@ export const generateMultipleInvoicePDF = (
   invoice
 ) => {
   let y = 140;
+
+  const maxNameWidth = workOrder.workOrderFrom === CMP_ERE ? 230 : 300;
 
   const incrementYAndCheck = (incrementBy) => {
     y += incrementBy ? incrementBy : 20;
@@ -657,15 +666,14 @@ export const generateMultipleInvoicePDF = (
 
   // Table headers
   incrementYAndCheck(10);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(11)
-    .text("Item", 50, y)
-    //.text("Description", 150, 320)
-    .text("QR", 280, y)
-    .text("Qty", 350, y)
-    .text("Unit Price", 390, y)
-    .text("Total Price", 450, y, { align: "right" });
+  doc.font("Helvetica-Bold").fontSize(11).text("Item", 50, y);
+  //.text("Description", 150, 320)
+  if (workOrder.workOrderFrom === CMP_ERE) {
+    doc.fontSize(11).text("QR", 280, y);
+  }
+  doc.fontSize(11).text("Qty", 350, y);
+  doc.fontSize(11).text("Unit Price", 390, y);
+  doc.fontSize(11).text("Total Price", 450, y, { align: "right" });
 
   incrementYAndCheck();
   doc.moveTo(50, y).lineTo(550, y).stroke();
@@ -673,19 +681,32 @@ export const generateMultipleInvoicePDF = (
   // Table rows
   incrementYAndCheck();
   invoice.items.forEach((item) => {
+    const textHeight = doc.fontSize(10).heightOfString(item.item, {
+      width: maxNameWidth,
+      lineGap: 5,
+    });
+
+    doc.font("Helvetica").fontSize(11).text(item.item, 50, y, {
+      width: maxNameWidth,
+    });
+    //.text(item.itemDescription, 150, y)
+    if (workOrder.workOrderFrom === CMP_ERE) {
+      doc
+        .fontSize(11)
+        .text(item.qrCode ? item.qrCode : " - ", 280, y, { width: 100 });
+    }
+
+    doc.fontSize(11).text(item.itemQty, 350, y, { width: 100 });
     doc
-      .font("Helvetica")
       .fontSize(11)
-      .text(item.item, 50, y, { width: 200 })
-      //.text(item.itemDescription, 150, y)
-      .text(item.qrCode, 280, y, { width: 100 })
-      .text(item.itemQty, 350, y, { width: 100 })
-      .text(formatCurrency(item.itemGrossPrice), 390, y, { width: 100 })
+      .text(formatCurrency(item.itemGrossPrice), 390, y, { width: 100 });
+    doc
+      .fontSize(11)
       .text(formatCurrency(item.itemQty * item.itemGrossPrice), 450, y, {
         align: "right",
         width: 100,
       });
-    y = incrementYAndCheck(30);
+    y = incrementYAndCheck(textHeight);
   });
 
   //y += 20;
