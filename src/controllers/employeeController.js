@@ -141,7 +141,7 @@ export const changePasswordForceFullyController = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(employee_success_code, success_message, savedUser)
+        ApiResponse.response(employee_success_code, success_message, savedUser),
       );
   } catch (error) {
     return res
@@ -205,7 +205,7 @@ export const login = async (req, res) => {
       return res
         .status(httpStatus.OK)
         .json(
-          ApiResponse.response(employee_error_code, employee_incorrect_pwd)
+          ApiResponse.response(employee_error_code, employee_incorrect_pwd),
         );
 
     const token = generateToken(user._id, user.userRole);
@@ -218,7 +218,7 @@ export const login = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(auth_success_code, logged_in_success, updatedUser)
+        ApiResponse.response(auth_success_code, logged_in_success, updatedUser),
       );
   } catch (error) {
     console.log(error);
@@ -342,7 +342,7 @@ export const getAllEmployees = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(employee_success_code, success_message, employees)
+        ApiResponse.response(employee_success_code, success_message, employees),
       );
   } catch (error) {
     console.log(error);
@@ -357,13 +357,13 @@ export const getAllEmployeeForSelect = async (req, res) => {
   try {
     const employees = await Employee.find(
       { userRole: { $in: [TECHNICIAN_ROLE, HELPER_ROLE] }, userIsActive: true }, // Filter by roles and active sts
-      { _id: 1, userFullName: 1, userRole: 1 }
+      { _id: 1, userFullName: 1, userRole: 1 },
     );
 
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(employee_success_code, success_message, employees)
+        ApiResponse.response(employee_success_code, success_message, employees),
       );
   } catch (error) {
     console.log(error);
@@ -382,15 +382,15 @@ export const getTotalTipsForLastMonth = async (req, res) => {
 
     // Get the start date of last month ( 20 )
     const lastMonthStartDate = new Date();
-    lastMonthStartDate.setDate(20);
+    lastMonthStartDate.setDate(1);
     lastMonthStartDate.setHours(0, 0, 0, 0);
 
     // Get the end date of last month ( 19 )
     const lastMonthEndDate = new Date();
-    lastMonthEndDate.setDate(19); // Set to last day of previous month
+    lastMonthEndDate.setDate(31); // Set to last day of previous month
     lastMonthEndDate.setHours(23, 59, 59, 999);
 
-    if (today.getDate() <= 19) {
+    if (today.getDate() <= 31) {
       lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 2);
       lastMonthEndDate.setMonth(lastMonthEndDate.getMonth() - 1);
     } else {
@@ -430,7 +430,7 @@ export const getTotalTipsForLastMonth = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(employee_success_code, success_message, totalTips)
+        ApiResponse.response(employee_success_code, success_message, totalTips),
       );
   } catch (error) {
     console.log(error);
@@ -449,10 +449,10 @@ export const getTotalTipsForCurrentMonth = async (req, res) => {
 
     // Get the start date of current month
     const startDate = new Date();
-    startDate.setDate(20);
+    startDate.setDate(1);
     startDate.setHours(0, 0, 0, 0);
 
-    if (today.getDate() <= 19) {
+    if (today.getDate() <= 31) {
       startDate.setMonth(startDate.getMonth() - 1);
     }
 
@@ -493,7 +493,7 @@ export const getTotalTipsForCurrentMonth = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(employee_success_code, success_message, totalTips)
+        ApiResponse.response(employee_success_code, success_message, totalTips),
       );
   } catch (error) {
     console.log(error);
@@ -536,7 +536,7 @@ export const empTotalTipsController = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(employee_success_code, success_message, totalTips)
+        ApiResponse.response(employee_success_code, success_message, totalTips),
       );
   } catch (error) {
     console.log(error);
