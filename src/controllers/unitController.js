@@ -199,7 +199,7 @@ export const deleteUnit = async (req, res) => {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(
-          ApiResponse.error(customer_error_code, customer_unit_cannot_delete)
+          ApiResponse.error(customer_error_code, customer_unit_cannot_delete),
         );
     }
 
@@ -366,7 +366,7 @@ export const getCustomerUnits = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(customer_success_code, success_message, units)
+        ApiResponse.response(customer_success_code, success_message, units),
       );
   } catch (error) {
     console.log(error);
@@ -406,7 +406,7 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
       ApiResponse.response(customer_success_code, success_message, {
         unit: unit,
         workOrders: workOrders,
-      })
+      }),
     );
   } catch (error) {
     console.log(error);
@@ -454,7 +454,7 @@ export const getUnitsForCalender = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(customer_success_code, success_message, units)
+        ApiResponse.response(customer_success_code, success_message, units),
       );
   } catch (error) {
     console.log(error);
@@ -482,7 +482,7 @@ export const getUnitsForCalenderDetails = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(customer_success_code, success_message, units)
+        ApiResponse.response(customer_success_code, success_message, units),
       );
   } catch (error) {
     console.log(error);
@@ -500,7 +500,7 @@ export const getUnitSavedBrandsAndModelsController = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(customer_success_code, success_message, result)
+        ApiResponse.response(customer_success_code, success_message, result),
       );
   } catch (error) {
     console.log(error);
@@ -714,7 +714,7 @@ export const getAllUnits = async (req, res) => {
         page,
         totalCount: count,
         totalPages: Math.ceil(totalCount / limit),
-      })
+      }),
     );
   } catch (error) {
     console.log(error);
@@ -725,11 +725,35 @@ export const getAllUnits = async (req, res) => {
 };
 
 export const getDueUnitsExcelDonwloadController = async (req, res) => {
+  const { type = "all" } = req.query;
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  let dateFilter = {};
+
+  switch (type) {
+    case "missed":
+      dateFilter = {
+        unitNextMaintenanceDate: { $lt: now },
+      };
+      break;
+
+    case "upcoming":
+      dateFilter = {
+        unitNextMaintenanceDate: {
+          $gte: now,
+        },
+      };
+      break;
+
+    case "all":
+      break;
+    default:
+      break;
+  }
   try {
-    // Fetch data from the database
-    const data = await Unit.find({
-      unitNextMaintenanceDate: { $lt: new Date() },
-    })
+    const data = await Unit.find(dateFilter)
       .populate("unitCustomerId")
       .populate("unitQrCode")
       .sort({ unitCustomerId: 1, unitNextMaintenanceDate: 1 });
@@ -805,7 +829,7 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
     // Set response headers for file download
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", "attachment; filename=DataSheet.xlsx");
 

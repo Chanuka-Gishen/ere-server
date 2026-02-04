@@ -40,20 +40,20 @@ const employeeSchema = new Schema({
   },
 });
 
-employeeSchema.pre("save", async function (next) {
+employeeSchema.pre("save", async function () {
   const employee = this;
 
   if (!employee.isModified("userPassword")) {
-    return next();
+    return;
   }
 
   try {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(employee.userPassword, salt);
     employee.userPassword = hashedPassword;
-    next();
+    return;
   } catch (error) {
-    return next(error);
+    throw error;
   }
 });
 
