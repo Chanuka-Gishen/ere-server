@@ -32,6 +32,7 @@ import AirConditionerModel from "../models/airConditionerModel.js";
 import { unitsFilterSchema } from "../schemas/unitsFilterSchema.js";
 import { UNIT_ORDER_BY } from "../constants/orderByConstants.js";
 import { isValidString } from "../services/commonServices.js";
+import { CMP_LIST } from "../constants/commonConstants.js";
 
 // Add customer unit
 export const AddCustomerUnit = async (req, res) => {
@@ -712,7 +713,7 @@ export const getAllUnits = async (req, res) => {
 };
 
 export const getDueUnitsExcelDonwloadController = async (req, res) => {
-  const { type = "all" } = req.query;
+  const { type = "all", company = "all" } = req.query;
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -745,6 +746,42 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
       .populate("unitQrCode")
       .sort({ unitNextMaintenanceDate: 1 });
 
+    // Get the last work order for each unit
+    const unitIds = data.map((unit) => unit._id);
+
+    // Aggregate to get the latest work order for each unit
+    const lastWorkOrders = await WorkOrder.aggregate([
+      {
+        $match: {
+          workOrderUnitReference: { $in: unitIds },
+          ...(CMP_LIST.includes(company) && { workOrderFrom: company }),
+        },
+      },
+      {
+        $sort: { workOrderCreatedAt: -1 }, // Get most recent first
+      },
+      {
+        $group: {
+          _id: "$workOrderUnitReference",
+          lastWorkOrderCode: { $first: "$workOrderCode" },
+          lastWorkOrderSubCode: { $first: "$workOrderCodeSub" },
+          lastWorkOrderDate: { $first: "$workOrderCreatedAt" },
+          workOrderFrom: { $first: "$workOrderFrom" },
+        },
+      },
+    ]);
+
+    // Create a map for quick lookup
+    const workOrderMap = new Map();
+    lastWorkOrders.forEach((wo) => {
+      workOrderMap.set(wo._id.toString(), {
+        code: wo.lastWorkOrderCode,
+        subCode: wo.lastWorkOrderSubCode,
+        date: wo.lastWorkOrderDate,
+        company: wo.workOrderFrom,
+      });
+    });
+
     // Create a new Excel workbook and sheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Data Sheet");
@@ -754,6 +791,9 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
       { header: "Customer Name", key: "customerName" },
       { header: "Last Maintainence Date", key: "unitLastMaintenanceDate" },
       { header: "Next Service Date", key: "unitNextMaintenanceDate" },
+      { header: "Last Job Code", key: "lastWorkOrderCode" },
+      { header: "Last Sub Job Code", key: "lastWorkOrderSubCode" },
+      { header: "Company", key: "company" },
       { header: "Customer Address", key: "customerAddress" },
       { header: "Customer Mobile", key: "customerMobile" },
       { header: "Unit Brand", key: "unitBrand" },
@@ -769,6 +809,10 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
 
     // Add rows to the worksheet
     data.forEach((item) => {
+      const lastWorkOrder = workOrderMap.get(item._id.toString());
+
+      if (company != "all" && lastWorkOrder?.company != company) return;
+
       worksheet.addRow({
         customerName: item.unitCustomerId
           ? item.unitCustomerId.customerName
@@ -779,6 +823,9 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
         unitNextMaintenanceDate: item.unitNextMaintenanceDate
           ? new Date(item.unitNextMaintenanceDate).toLocaleDateString("en-US")
           : " - ",
+        lastWorkOrderCode: lastWorkOrder ? lastWorkOrder.code : " - ",
+        lastWorkOrderSubCode: lastWorkOrder ? lastWorkOrder.subCode : " - ",
+        company: lastWorkOrder ? lastWorkOrder.company : " - ",
         customerAddress: item.unitCustomerId
           ? item.unitCustomerId.customerAddress
           : " - ",
@@ -815,6 +862,10 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", "attachment; filename=DataSheet.xlsx");
+    // Remove any caching headers that might interfere
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
 
     // Write the workbook to the response stream
     await workbook.xlsx.write(res);
