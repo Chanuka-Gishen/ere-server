@@ -374,6 +374,8 @@ export const getTotalTipsForLastMonth = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const today = new Date();
+
     // Calculate last month
     const lastMonth = new Date(today);
     lastMonth.setMonth(lastMonth.getMonth() - 1);
