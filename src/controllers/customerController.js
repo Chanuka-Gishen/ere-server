@@ -66,7 +66,6 @@ export const registerCustomer = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, customer_registered));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -127,7 +126,6 @@ export const updateCustomer = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -228,10 +226,9 @@ export const getAllCustomers = async (req, res) => {
       ApiResponse.response(customer_success_code, success_message, {
         data,
         count,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -253,10 +250,9 @@ export const getCustomer = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(customer_success_code, success_message, customer)
+        ApiResponse.response(customer_success_code, success_message, customer),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -318,10 +314,9 @@ export const GetUpcomingMaintainences = async (req, res) => {
       ApiResponse.response(customer_success_code, success_message, {
         data: result,
         count,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -383,10 +378,9 @@ export const getCustomerRemainderLogs = async (req, res) => {
       ApiResponse.response(customer_success_code, success_message, {
         data: result,
         count,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -404,7 +398,7 @@ export const SetRemindersToCustomers = async () => {
     0,
     0,
     0,
-    0
+    0,
   );
 
   const nextWeek = new Date();

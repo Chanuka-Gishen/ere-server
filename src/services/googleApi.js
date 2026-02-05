@@ -73,14 +73,14 @@ const handleDeleteFolders = async (drive, folderName) => {
         fileId: existingFile.id,
       });
 
-      console.log(
-        `Deleted existing file ${existingFile.name}. ID: ${existingFile.id}`
-      );
+      // console.log(
+      //   `Deleted existing file ${existingFile.name}. ID: ${existingFile.id}`
+      // );
     } catch (error) {
-      console.error(
-        `Error deleting existing file ${existingFile.name}:`,
-        error.message
-      );
+      // console.error(
+      //   `Error deleting existing file ${existingFile.name}:`,
+      //   error.message
+      // );
       throw error;
     }
   }
@@ -127,7 +127,7 @@ export const deleteDriveFilesAdmin = async (idList) => {
   await Promise.all(
     idList.map(async (id) => {
       await drive.files.delete({ fileId: id });
-    })
+    }),
   );
 
   return;
@@ -139,7 +139,7 @@ export const uploadImagesToDrive = async (
   fileList,
   customerName,
   acSerialNumber,
-  workId
+  workId,
 ) => {
   const drive = google.drive({ version: "v3", auth });
 
@@ -151,21 +151,21 @@ export const uploadImagesToDrive = async (
   // Create the base folder if it doesn't exist
   const baseFolderId = await createFolder(
     drive,
-    process.env.DRIVE_PARENT_FOLDER
+    process.env.DRIVE_PARENT_FOLDER,
   );
 
   // Create the customer folder if it doesn't exist
   const customerFolderId = await createFolder(
     drive,
     customerName,
-    baseFolderId
+    baseFolderId,
   );
 
   // Create the AC unit folder if it doesn't exist
   const acUnitFolderId = await createFolder(
     drive,
     acSerialNumber,
-    customerFolderId
+    customerFolderId,
   );
 
   // Create the work folder if it doesn't exist
@@ -202,7 +202,7 @@ export const uploadImagesToDrive = async (
     } catch (error) {
       console.error(
         `Error uploading file ${fileObject.originalname}:`,
-        error.message
+        error.message,
       );
       throw error;
     }
@@ -221,7 +221,7 @@ export const uploadQrCodes = async () => {
 
   const baseFolderId = await createFolder(
     drive,
-    process.env.DRIVE_QR_PARENT_FOLDER
+    process.env.DRIVE_QR_PARENT_FOLDER,
   );
 
   for (let i = 1; i <= numQRCodes; i++) {
@@ -235,7 +235,7 @@ export const uploadQrCodes = async () => {
 
     const { tempFilePath } = await generateQrCodes(
       formattedFileName,
-      qrCodeData
+      qrCodeData,
     );
 
     const imageBuffer = fs.readFileSync(tempFilePath);
@@ -269,7 +269,7 @@ export const uploadQrCodes = async () => {
     } catch (error) {
       console.error(
         `Error uploading file ${fileObject.originalname}:`,
-        error.message
+        error.message,
       );
       throw error;
     } finally {

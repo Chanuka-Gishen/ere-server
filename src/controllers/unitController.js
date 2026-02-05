@@ -96,7 +96,6 @@ export const AddCustomerUnit = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, customer_unit_added));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -147,7 +146,6 @@ export const updateCustomerUnit = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, customer_unit_updated));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -171,7 +169,6 @@ export const getUnitDetails = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, success_message, unit));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -217,7 +214,6 @@ export const deleteUnit = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, customer_unit_deleted));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -252,7 +248,6 @@ export const updateUnitSerialNumber = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, customer_unit_updated));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -306,7 +301,6 @@ export const updateUnitQrCode = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -345,7 +339,6 @@ export const removeQrFromUnit = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(customer_success_code, qr_removed));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -369,7 +362,6 @@ export const getCustomerUnits = async (req, res) => {
         ApiResponse.response(customer_success_code, success_message, units),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -409,7 +401,6 @@ export const getCustomerUnitDetailsFromQrCode = async (req, res) => {
       }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -457,7 +448,6 @@ export const getUnitsForCalender = async (req, res) => {
         ApiResponse.response(customer_success_code, success_message, units),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -485,7 +475,6 @@ export const getUnitsForCalenderDetails = async (req, res) => {
         ApiResponse.response(customer_success_code, success_message, units),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -503,7 +492,6 @@ export const getUnitSavedBrandsAndModelsController = async (req, res) => {
         ApiResponse.response(customer_success_code, success_message, result),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -717,7 +705,6 @@ export const getAllUnits = async (req, res) => {
       }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -778,8 +765,6 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
       // Add more columns based on your database schema
     ];
 
-    console.log(data);
-
     // Set columns to worksheet
     worksheet.columns = columns;
 
@@ -837,7 +822,6 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
