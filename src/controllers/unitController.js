@@ -743,7 +743,7 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
     const data = await Unit.find(dateFilter)
       .populate("unitCustomerId")
       .populate("unitQrCode")
-      .sort({ unitCustomerId: 1, unitNextMaintenanceDate: 1 });
+      .sort({ unitNextMaintenanceDate: -1 });
 
     // Create a new Excel workbook and sheet
     const workbook = new ExcelJS.Workbook();
@@ -751,16 +751,15 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
 
     // Define columns for the Excel sheet
     const columns = [
-      { header: "ID", key: "_id" },
       { header: "Customer Name", key: "customerName" },
+      { header: "Last Maintainence Date", key: "unitLastMaintenanceDate" },
+      { header: "Next Service Date", key: "unitNextMaintenanceDate" },
       { header: "Customer Address", key: "customerAddress" },
       { header: "Customer Mobile", key: "customerMobile" },
       { header: "Unit Brand", key: "unitBrand" },
       { header: "Unit Model", key: "unitModel" },
       { header: "Unit Serial No", key: "unitSerialNo" },
       { header: "Installed Date", key: "unitInstalledDate" },
-      { header: "Last Maintainence Date", key: "unitLastMaintenanceDate" },
-      { header: "Next Service Date", key: "unitNextMaintenanceDate" },
       { header: "QR Code", key: "qrCodeName" },
       // Add more columns based on your database schema
     ];
@@ -771,9 +770,14 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
     // Add rows to the worksheet
     data.forEach((item) => {
       worksheet.addRow({
-        _id: item._id,
         customerName: item.unitCustomerId
           ? item.unitCustomerId.customerName
+          : " - ",
+        unitLastMaintenanceDate: item.unitLastMaintenanceDate
+          ? new Date(item.unitLastMaintenanceDate).toLocaleDateString("en-US")
+          : " - ",
+        unitNextMaintenanceDate: item.unitNextMaintenanceDate
+          ? new Date(item.unitNextMaintenanceDate).toLocaleDateString("en-US")
           : " - ",
         customerAddress: item.unitCustomerId
           ? item.unitCustomerId.customerAddress
@@ -786,12 +790,6 @@ export const getDueUnitsExcelDonwloadController = async (req, res) => {
         unitSerialNo: item.unitSerialNo,
         unitInstalledDate: item.unitInstalledDate
           ? new Date(item.unitInstalledDate).toLocaleDateString("en-US")
-          : " - ",
-        unitLastMaintenanceDate: item.unitLastMaintenanceDate
-          ? new Date(item.unitLastMaintenanceDate).toLocaleDateString("en-US")
-          : " - ",
-        unitNextMaintenanceDate: item.unitNextMaintenanceDate
-          ? new Date(item.unitNextMaintenanceDate).toLocaleDateString("en-US")
           : " - ",
         qrCodeName: item.unitQrCode ? item.unitQrCode.qrCodeName : " - ",
       });
