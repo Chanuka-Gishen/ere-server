@@ -541,6 +541,7 @@ export const getWorkOrders = async (req, res) => {
     const filterInvoiceNumber = req.query.invoiceNumber;
     const filterByFrom = req.query.company;
     const filterByType = req.query.type;
+    const filterBySerialCode = req.query.serialNumber;
 
     const query = {};
 
@@ -607,6 +608,12 @@ export const getWorkOrders = async (req, res) => {
             {
               $match: {
                 $expr: { $eq: ["$_id", "$$unitId"] }, // Match unit ID
+                ...(isValidString(filterBySerialCode) && {
+                  unitSerialNo: {
+                    $regex: `^${filterBySerialCode}`,
+                    $options: "i",
+                  },
+                }),
               },
             },
             {
