@@ -55,14 +55,14 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
 
     if (workOrder.workOrderInvoice) {
       invoice = await InvoiceModel.findById(
-        new ObjectId(workOrder.workOrderInvoice)
+        new ObjectId(workOrder.workOrderInvoice),
       );
     } else {
       let invoiceNumber = null;
 
       if (
         [CMP_ERE, CMP_SINGER_DIR, CMP_SINHAGIRI_DIR].includes(
-          workOrder.workOrderFrom
+          workOrder.workOrderFrom,
         )
       ) {
         await updateSequenceValue(INVOICE_SEQUENCE);
@@ -99,14 +99,14 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
         total +
         (parseFloat(item.itemQty) || 0) *
           (parseFloat(item.itemGrossPrice) || 0),
-      0
+      0,
     );
 
     const itemsNetTotal = items.reduce(
       (total, item) =>
         total +
         (parseFloat(item.itemQty) || 0) * (parseFloat(item.itemNetPrice) || 0),
-      0
+      0,
     );
 
     // Calculate the total of additional charges
@@ -150,10 +150,12 @@ export const addUpdateWorkOrderChargers = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(workorder_success_code, workOrder_chargers_updated)
+        ApiResponse.response(
+          workorder_success_code,
+          workOrder_chargers_updated,
+        ),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -185,7 +187,7 @@ export const updateInvoiceLinkedToContorller = async (req, res) => {
 
   if (workOrder.workOrderInvoice) {
     invoice = await InvoiceModel.findById(
-      new ObjectId(workOrder.workOrderInvoice)
+      new ObjectId(workOrder.workOrderInvoice),
     );
   } else {
     await updateSequenceValue(INVOICE_SEQUENCE);
@@ -214,17 +216,17 @@ export const updateInvoiceLinkedToContorller = async (req, res) => {
 
   // Get the current list of workOrderIds linked to the invoice
   const currentWorkOrderIds = invoice.invoiceLinkedTo.map((id) =>
-    id.toString()
+    id.toString(),
   );
 
   // Find newly added workOrderIds
   const newWorkOrderIds = workOrderLinkedJobs.filter(
-    (id) => !currentWorkOrderIds.includes(id)
+    (id) => !currentWorkOrderIds.includes(id),
   );
 
   // Find deleted workOrderIds
   const deletedWorkOrderIds = currentWorkOrderIds.filter(
-    (id) => !workOrderLinkedJobs.includes(id)
+    (id) => !workOrderLinkedJobs.includes(id),
   );
 
   if (newWorkOrderIds.length != 0) {
@@ -259,7 +261,7 @@ export const updateInvoiceStatus = async (req, res) => {
   const { id } = req.query;
   try {
     const workOrder = await WorkOrder.findById(new ObjectId(id)).populate(
-      "workOrderInvoice"
+      "workOrderInvoice",
     );
     if (!workOrder) {
       return res
@@ -287,7 +289,7 @@ export const updateInvoiceStatus = async (req, res) => {
 
     await InvoiceModel.updateMany(
       { invoiceLinkedWorkOrder: { $in: workorders } },
-      { $set: { invoiceNumber: genInvoiceNo, invoiceStatus: INV_CLOSED } }
+      { $set: { invoiceNumber: genInvoiceNo, invoiceStatus: INV_CLOSED } },
     );
 
     return res
@@ -431,10 +433,9 @@ export const getAllInvoices = async (req, res) => {
       ApiResponse.response(workorder_success_code, success_message, {
         data,
         count,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -492,10 +493,13 @@ export const getTotalCostStats = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(workorder_success_code, success_message, result[0])
+        ApiResponse.response(
+          workorder_success_code,
+          success_message,
+          result[0],
+        ),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -522,7 +526,10 @@ export const downloadInvoice = async (req, res) => {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(
-          ApiResponse.error(workorder_error_code, workOrder_invoice_not_created)
+          ApiResponse.error(
+            workorder_error_code,
+            workOrder_invoice_not_created,
+          ),
         );
     }
 
@@ -530,7 +537,7 @@ export const downloadInvoice = async (req, res) => {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(
-          ApiResponse.error(workorder_warning_code, invoice_should_close_first)
+          ApiResponse.error(workorder_warning_code, invoice_should_close_first),
         );
     }
 
@@ -541,7 +548,7 @@ export const downloadInvoice = async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename=${workOrder.workOrderInvoice.invoiceNumber}.pdf`
+      `inline; filename=${workOrder.workOrderInvoice.invoiceNumber}.pdf`,
     );
 
     // Stream the PDF buffer to the response
@@ -552,12 +559,11 @@ export const downloadInvoice = async (req, res) => {
       workOrder.workOrderCustomerId,
       workOrder.workOrderUnitReference,
       workOrder,
-      workOrder.workOrderInvoice
+      workOrder.workOrderInvoice,
     );
 
     doc.end();
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -591,7 +597,7 @@ export const downloadTotalInvoice = async (req, res) => {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(
-          ApiResponse.error(workorder_warning_code, invoice_should_close_first)
+          ApiResponse.error(workorder_warning_code, invoice_should_close_first),
         );
     }
 
@@ -657,7 +663,7 @@ export const downloadTotalInvoice = async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename=${selectedWorkOrder.workOrderCode}.pdf`
+      `inline; filename=${selectedWorkOrder.workOrderCode}.pdf`,
     );
 
     // Stream the PDF buffer to the response
@@ -667,12 +673,11 @@ export const downloadTotalInvoice = async (req, res) => {
       doc,
       selectedWorkOrder.workOrderCustomerId,
       selectedWorkOrder,
-      invoice
+      invoice,
     );
 
     doc.end();
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));

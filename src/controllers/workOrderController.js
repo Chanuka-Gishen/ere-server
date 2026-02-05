@@ -107,7 +107,7 @@ export const createJob = async (req, res) => {
     const code = generateWorkOrderNumber(
       sequenceType,
       sequenceValue,
-      workOrderScheduledDate
+      workOrderScheduledDate,
     );
 
     const newJob = new WorkOrder({
@@ -138,7 +138,6 @@ export const createJob = async (req, res) => {
       .status(httpStatus.CREATED)
       .json(ApiResponse.response(workorder_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -193,7 +192,7 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrder.workOrderLinked.length > workOrderLinkedJobs.length;
 
     const previousLinkedWo = workOrder.workOrderLinked.map(
-      (job) => new ObjectId(job._id)
+      (job) => new ObjectId(job._id),
     );
 
     const linkedObjectIds =
@@ -202,8 +201,6 @@ export const updateWorkOrderDetails = async (req, res) => {
         : [];
 
     if (isNewLinkedJobs) {
-      console.log("new linked wos");
-
       const newLinkedWorkorders = await WorkOrder.find({
         _id: { $in: linkedObjectIds },
       }).populate("workOrderInvoice");
@@ -211,7 +208,7 @@ export const updateWorkOrderDetails = async (req, res) => {
       const workOrdersWithClosedInvoices = newLinkedWorkorders.filter(
         (wo) =>
           wo.workOrderInvoice &&
-          wo.workOrderInvoice.invoiceStatus === INV_CLOSED
+          wo.workOrderInvoice.invoiceStatus === INV_CLOSED,
       );
 
       if (workOrdersWithClosedInvoices.length > 0) {
@@ -220,8 +217,8 @@ export const updateWorkOrderDetails = async (req, res) => {
           .json(
             ApiResponse.error(
               info_code,
-              workOrder_cannot_linked_with_closed_invoices
-            )
+              workOrder_cannot_linked_with_closed_invoices,
+            ),
           );
       }
     }
@@ -234,14 +231,14 @@ export const updateWorkOrderDetails = async (req, res) => {
 
     if (isDeletedJobs) {
       const deletedIds = workOrder.workOrderLinked.filter(
-        (id) => !linkedObjectIds.includes(id)
+        (id) => !linkedObjectIds.includes(id),
       );
 
       const deletedObjIds = deletedIds.map((id) => new ObjectId(id));
 
       await InvoiceModel.updateMany(
         { invoiceLinkedWorkOrder: { $in: deletedObjIds } },
-        { $set: { invoiceNumber: null, invoiceStatus: INV_CREATED } }
+        { $set: { invoiceNumber: null, invoiceStatus: INV_CREATED } },
       );
     }
 
@@ -252,7 +249,7 @@ export const updateWorkOrderDetails = async (req, res) => {
           workOrderLinked: updatedWoLinkedList,
           workOrderLinkedInvoiceNo: null,
         },
-      }
+      },
     );
 
     //---------------------------------------------------------------
@@ -268,7 +265,7 @@ export const updateWorkOrderDetails = async (req, res) => {
     ) {
       if (workOrder.workOrderInvoice) {
         const invoice = await InvoiceModel.findById(
-          new ObjectId(workOrder.workOrderInvoice)
+          new ObjectId(workOrder.workOrderInvoice),
         );
 
         invoice.invoiceNumber = workOrderInvoiceNumber;
@@ -294,7 +291,7 @@ export const updateWorkOrderDetails = async (req, res) => {
       workOrder.workOrderType === WORK_ORD_SERVICE
     ) {
       const unit = await Unit.findById(
-        new ObjectId(workOrder.workOrderUnitReference)
+        new ObjectId(workOrder.workOrderUnitReference),
       );
 
       unit.unitNextMaintenanceDate = workOrderScheduledDate;
@@ -308,13 +305,13 @@ export const updateWorkOrderDetails = async (req, res) => {
       await updateSequenceValue(getSequenceType(workOrderType));
 
       const sequenceValue = await getSequenceValue(
-        getSequenceType(workOrderType)
+        getSequenceType(workOrderType),
       );
 
       workOrder.workOrderCode = generateWorkOrderNumber(
         getSequenceType(workOrderType),
         sequenceValue,
-        workOrderScheduledDate
+        workOrderScheduledDate,
       );
 
       workOrder.workOrderType = workOrderType;
@@ -329,7 +326,7 @@ export const updateWorkOrderDetails = async (req, res) => {
         workOrder.workOrderCode = updateDateInWorkOrderCode(
           parts[0],
           workOrderScheduledDate,
-          parts[2]
+          parts[2],
         );
       }
       workOrder.workOrderScheduledDate = workOrderScheduledDate;
@@ -343,7 +340,6 @@ export const updateWorkOrderDetails = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -386,7 +382,7 @@ export const deleteWorkOrder = async (req, res) => {
 
     if (job.workOrderInvoice) {
       const exitingsInvoice = await InvoiceModel.findById(
-        new ObjectId(job.workOrderInvoice)
+        new ObjectId(job.workOrderInvoice),
       );
       await InvoiceModel.deleteOne(exitingsInvoice);
     }
@@ -397,7 +393,6 @@ export const deleteWorkOrder = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, workOrder_deleted));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -411,7 +406,7 @@ export const workOrderCompleteState = async (req, res) => {
     const date = req.body.date;
 
     const workOrder = await WorkOrder.findById(new ObjectId(id)).populate(
-      "workOrderInvoice"
+      "workOrderInvoice",
     );
 
     if (!workOrder) {
@@ -424,7 +419,7 @@ export const workOrderCompleteState = async (req, res) => {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(
-          ApiResponse.error(workorder_warning_code, invoice_should_close_first)
+          ApiResponse.error(workorder_warning_code, invoice_should_close_first),
         );
     }
 
@@ -435,7 +430,7 @@ export const workOrderCompleteState = async (req, res) => {
 
     if (workOrder.workOrderLinked.length > 0) {
       linkedWorkordersIds = workOrder.workOrderLinked.map(
-        (wo) => new ObjectId(wo)
+        (wo) => new ObjectId(wo),
       );
 
       const linkedWorkordersWithoutEmpsAssigned = await WorkOrder.find({
@@ -460,8 +455,8 @@ export const workOrderCompleteState = async (req, res) => {
         .json(
           ApiResponse.error(
             workorder_warning_code,
-            `${workOrder_not_assigned} - ${incompleteWorkorderCode}`
-          )
+            `${workOrder_not_assigned} - ${incompleteWorkorderCode}`,
+          ),
         );
     }
 
@@ -477,7 +472,7 @@ export const workOrderCompleteState = async (req, res) => {
       {
         workOrderStatus: COMPLETED_STATUS,
         workOrderCompletedDate: completedDate,
-      }
+      },
     );
 
     const linkedWorkorders = await WorkOrder.find({
@@ -487,7 +482,7 @@ export const workOrderCompleteState = async (req, res) => {
     for (const linkedWorkorder of linkedWorkorders) {
       if (linkedWorkorder.workOrderType != WORK_ORD_REPAIR) {
         const unit = await Unit.findById(
-          new ObjectId(linkedWorkorder.workOrderUnitReference)
+          new ObjectId(linkedWorkorder.workOrderUnitReference),
         );
 
         if (!unit) {
@@ -509,7 +504,7 @@ export const workOrderCompleteState = async (req, res) => {
 
           // After 4 months the next service
           unit.unitNextMaintenanceDate = new Date(
-            latestLastMaintenanceDate
+            latestLastMaintenanceDate,
           ).setMonth(new Date(latestLastMaintenanceDate).getMonth() + 4);
         }
 
@@ -725,10 +720,9 @@ export const getWorkOrders = async (req, res) => {
       ApiResponse.response(workorder_success_code, success_message, {
         data,
         count,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -768,10 +762,9 @@ export const GetWorkOrdersByUnit = async (req, res) => {
       ApiResponse.response(workorder_success_code, success_message, {
         data,
         count,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -816,10 +809,13 @@ export const getDetailsOfWorkOrderWithPopulated = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(workorder_success_code, success_message, workOrder)
+        ApiResponse.response(
+          workorder_success_code,
+          success_message,
+          workOrder,
+        ),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -859,7 +855,7 @@ export const workOrderAssign = async (req, res) => {
       return res
         .status(httpStatus.NOT_FOUND)
         .json(
-          ApiResponse.error(bad_request_code, workOrder_assignees_required)
+          ApiResponse.error(bad_request_code, workOrder_assignees_required),
         );
     }
 
@@ -885,17 +881,17 @@ export const workOrderAssign = async (req, res) => {
       });
 
       const technicianCount = result.workOrderAssignedEmployees.filter(
-        (record) => record.employee.userRole === TECHNICIAN_ROLE
+        (record) => record.employee.userRole === TECHNICIAN_ROLE,
       );
       const helperCount = result.workOrderAssignedEmployees.filter(
-        (record) => record.employee.userRole === HELPER_ROLE
+        (record) => record.employee.userRole === HELPER_ROLE,
       );
 
       const { perTechnicianAmount, perHelperAmount } =
         divideSalaryAmongEmployees(
           technicianCount.length,
           helperCount.length,
-          totalTip
+          totalTip,
         );
 
       result.workOrderEmployeeTip = totalTip;
@@ -915,7 +911,6 @@ export const workOrderAssign = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -951,7 +946,7 @@ export const uploadWorkImages = async (req, res) => {
     }
 
     const unit = await Unit.findById(
-      new ObjectId(workOrder.workOrderUnitReference)
+      new ObjectId(workOrder.workOrderUnitReference),
     );
 
     if (!unit) {
@@ -961,7 +956,7 @@ export const uploadWorkImages = async (req, res) => {
     }
 
     const customer = await Customer.findById(
-      new ObjectId(workOrder.workOrderCustomerId)
+      new ObjectId(workOrder.workOrderCustomerId),
     );
 
     if (!customer) {
@@ -974,7 +969,7 @@ export const uploadWorkImages = async (req, res) => {
       files,
       customer.customerName,
       unit.unitSerialNo,
-      workOrder.workOrderCode
+      workOrder.workOrderCode,
     );
 
     const images = [];
@@ -988,7 +983,7 @@ export const uploadWorkImages = async (req, res) => {
           imageMimeType: file.mimeType,
           imageWebUrl: file.publicUrl,
           imageContentUrl: file.contentUrl,
-        })
+        }),
       );
     }
 
@@ -1002,7 +997,6 @@ export const uploadWorkImages = async (req, res) => {
       .status(200)
       .json(ApiResponse.response(workorder_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -1046,10 +1040,9 @@ export const getEmployeeAssignedWorkOverview = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(workorder_success_code, success_message, result)
+        ApiResponse.response(workorder_success_code, success_message, result),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -1083,16 +1076,16 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
     }
 
     const technicianCount = workOrder.workOrderAssignedEmployees.filter(
-      (record) => record.employee.userRole === TECHNICIAN_ROLE
+      (record) => record.employee.userRole === TECHNICIAN_ROLE,
     );
     const helperCount = workOrder.workOrderAssignedEmployees.filter(
-      (record) => record.employee.userRole === HELPER_ROLE
+      (record) => record.employee.userRole === HELPER_ROLE,
     );
 
     const { perTechnicianAmount, perHelperAmount } = divideSalaryAmongEmployees(
       technicianCount.length,
       helperCount.length,
-      amount
+      amount,
     );
 
     workOrder.workOrderEmployeeTip = amount;
@@ -1111,7 +1104,6 @@ export const updateWorkOrderEmployeeTips = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -1138,11 +1130,10 @@ export const getTodaysWorkCount = async (req, res) => {
         ApiResponse.response(
           workorder_success_code,
           success_message,
-          countOfTodayWorkOrders
-        )
+          countOfTodayWorkOrders,
+        ),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -1158,12 +1149,12 @@ export const deleteFilesFromDrive = async (req, res) => {
       return res
         .status(httpStatus.BAD_REQUEST)
         .json(
-          ApiResponse.error(workorder_error_code, workOrder_images_missing)
+          ApiResponse.error(workorder_error_code, workOrder_images_missing),
         );
     }
 
     const existingWorkOrder = await WorkOrder.findById(
-      new ObjectId(workOrderId)
+      new ObjectId(workOrderId),
     );
 
     if (!existingWorkOrder) {
@@ -1179,7 +1170,7 @@ export const deleteFilesFromDrive = async (req, res) => {
     const deletedImageIds = idList.map((file) => file._id);
 
     const newImageList = existingWorkOrder.workOrderImages.filter(
-      (image) => !deletedImageIds.includes(image._id.toString())
+      (image) => !deletedImageIds.includes(image._id.toString()),
     );
 
     existingWorkOrder.workOrderImages = newImageList;
@@ -1190,7 +1181,6 @@ export const deleteFilesFromDrive = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(workorder_success_code, success_message));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -1232,11 +1222,10 @@ export const workOrdersBySheduledDateAndCustomer = async (req, res) => {
         ApiResponse.response(
           workorder_success_code,
           success_message,
-          workOrders
-        )
+          workOrders,
+        ),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -1414,10 +1403,9 @@ export const employeeWorkOrdersController = async (req, res) => {
         workOrders,
         documentCount:
           documentCount.length > 0 ? documentCount[0].totalCount : 0,
-      })
+      }),
     );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));

@@ -39,19 +39,18 @@ export const createBulkQrCodes = async (req, res) => {
       {
         constantCode: CONST_CODE_QR,
       },
-      { $set: { constantIsAvailable: true } }
+      { $set: { constantIsAvailable: true } },
     );
 
     return res
       .status(httpStatus.OK)
       .json(ApiResponse.error(qr_success_code, qr_generated));
   } catch (error) {
-    console.log(error);
     await ConstantModel.findOneAndUpdate(
       {
         constantCode: CONST_CODE_QR,
       },
-      { $set: { constantIsAvailable: true } }
+      { $set: { constantIsAvailable: true } },
     );
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
@@ -66,10 +65,13 @@ export const getAvailableQrCodes = async (req, res) => {
     return res
       .status(httpStatus.OK)
       .json(
-        ApiResponse.response(qr_success_code, success_message, availableQRCodes)
+        ApiResponse.response(
+          qr_success_code,
+          success_message,
+          availableQRCodes,
+        ),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -84,7 +86,6 @@ export const getAvailableQrCodeCount = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(qr_success_code, success_message, count));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
       .json(ApiResponse.error(bad_request_code, error.message));

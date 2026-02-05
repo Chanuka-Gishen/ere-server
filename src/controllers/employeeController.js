@@ -221,7 +221,6 @@ export const login = async (req, res) => {
         ApiResponse.response(auth_success_code, logged_in_success, updatedUser),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -246,7 +245,6 @@ export const logout = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(auth_success_code, logged_out_success));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -345,7 +343,6 @@ export const getAllEmployees = async (req, res) => {
         ApiResponse.response(employee_success_code, success_message, employees),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -366,7 +363,6 @@ export const getAllEmployeeForSelect = async (req, res) => {
         ApiResponse.response(employee_success_code, success_message, employees),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -378,24 +374,31 @@ export const getTotalTipsForLastMonth = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const today = new Date();
+    // Calculate last month
+    const lastMonth = new Date(today);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
 
-    // Get the start date of last month ( 20 )
-    const lastMonthStartDate = new Date();
-    lastMonthStartDate.setDate(1);
-    lastMonthStartDate.setHours(0, 0, 0, 0);
+    // Get the start date of last month (1st day at 00:00:00)
+    const lastMonthStartDate = new Date(
+      lastMonth.getFullYear(),
+      lastMonth.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
 
-    // Get the end date of last month ( 19 )
-    const lastMonthEndDate = new Date();
-    lastMonthEndDate.setDate(31); // Set to last day of previous month
-    lastMonthEndDate.setHours(23, 59, 59, 999);
-
-    if (today.getDate() <= 31) {
-      lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 2);
-      lastMonthEndDate.setMonth(lastMonthEndDate.getMonth() - 1);
-    } else {
-      lastMonthStartDate.setMonth(lastMonthStartDate.getMonth() - 1);
-    }
+    // Get the end date of last month (last day at 23:59:59.999)
+    const lastMonthEndDate = new Date(
+      lastMonth.getFullYear(),
+      lastMonth.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     // Aggregation pipeline to calculate total tips for last month
     const result = await WorkOrder.aggregate([
@@ -433,7 +436,6 @@ export const getTotalTipsForLastMonth = async (req, res) => {
         ApiResponse.response(employee_success_code, success_message, totalTips),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -447,18 +449,27 @@ export const getTotalTipsForCurrentMonth = async (req, res) => {
 
     const today = new Date();
 
-    // Get the start date of current month
-    const startDate = new Date();
-    startDate.setDate(1);
-    startDate.setHours(0, 0, 0, 0);
+    // Get the start date of current month (1st day at 00:00:00)
+    const startDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
 
-    if (today.getDate() <= 31) {
-      startDate.setMonth(startDate.getMonth() - 1);
-    }
-
-    // Get the end date of current month
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
+    // Get the end date of current month (last day at 23:59:59.999)
+    const endDate = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     // Aggregation pipeline to calculate total tips for last month
     const result = await WorkOrder.aggregate([
@@ -496,7 +507,6 @@ export const getTotalTipsForCurrentMonth = async (req, res) => {
         ApiResponse.response(employee_success_code, success_message, totalTips),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -539,7 +549,6 @@ export const empTotalTipsController = async (req, res) => {
         ApiResponse.response(employee_success_code, success_message, totalTips),
       );
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
@@ -556,7 +565,6 @@ export const getEmployeeByIdController = async (req, res) => {
       .status(httpStatus.OK)
       .json(ApiResponse.response(employee_success_code, success_message, data));
   } catch (error) {
-    console.log(error);
     return res
       .status(httpStatus.BAD_REQUEST)
       .json(ApiResponse.error(bad_request_code, error.message));
