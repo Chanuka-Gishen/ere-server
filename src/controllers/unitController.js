@@ -6,12 +6,14 @@ import {
   bad_request_code,
   customer_error_code,
   customer_success_code,
+  error_code,
   qr_error_code,
 } from "../constants/statusCodes.js";
 import { unitAddSchema } from "../schemas/unitAddSchema.js";
 import Unit from "../models/unitModel.js";
 import Customer from "../models/customerModel.js";
 import {
+  customer_id_required,
   customer_not_found,
   customer_unit_added,
   customer_unit_cannot_delete,
@@ -33,6 +35,7 @@ import { unitsFilterSchema } from "../schemas/unitsFilterSchema.js";
 import { UNIT_ORDER_BY } from "../constants/orderByConstants.js";
 import { isValidString } from "../services/commonServices.js";
 import { CMP_LIST } from "../constants/commonConstants.js";
+import mongoose from "mongoose";
 
 // Add customer unit
 export const AddCustomerUnit = async (req, res) => {
@@ -356,6 +359,55 @@ export const getCustomerUnits = async (req, res) => {
       .populate("unitQrCode")
       .sort({ unitNextMaintenanceDate: 1 })
       .exec();
+
+    return res
+      .status(httpStatus.OK)
+      .json(
+        ApiResponse.response(customer_success_code, success_message, units),
+      );
+  } catch (error) {
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+export const getCustomerUnitsPublic = async (req, res) => {
+  const id = req.query.id;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(error_code, customer_id_required));
+  }
+
+  try {
+    const customer = await Customer.findById(new ObjectId(id));
+
+    if (!customer) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(error_code, customer_not_found));
+    }
+
+    const units = await Unit.find({
+      unitCustomerId: new ObjectId(id),
+    })
+      .populate({
+        path: "unitQrCode",
+        select: { qrCodeName: 1 },
+      })
+      .sort({ unitNextMaintenanceDate: 1 })
+      .select({
+        unitBrand: 1,
+        unitModel: 1,
+        unitSerialNo: 1,
+        unitInstalledDate: 1,
+        unitLastMaintenanceDate: 1,
+        unitNextMaintenanceDate: 1,
+        unitQrCode: 1,
+      })
+      .lean();
 
     return res
       .status(httpStatus.OK)

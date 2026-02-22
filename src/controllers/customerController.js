@@ -3,12 +3,14 @@ import {
   bad_request_code,
   customer_error_code,
   customer_success_code,
+  error_code,
 } from "../constants/statusCodes.js";
 import { customerRegisterSchema } from "../schemas/customerSchema.js";
 import Customer from "../models/customerModel.js";
 import ApiResponse from "../services/ApiResponse.js";
 import {
   customer_exists,
+  customer_id_required,
   customer_not_found,
   customer_registered,
   success_message,
@@ -323,8 +325,8 @@ export const GetUpcomingMaintainences = async (req, res) => {
   }
 };
 
-// Get customer remainders logs
-export const getCustomerRemainderLogs = async (req, res) => {
+// Get customers remainders logs
+export const getCustomersRemainderLogs = async (req, res) => {
   const page = parseInt(req.query.page) || 0;
   const limit = parseInt(req.query.limit) || 10;
 
@@ -380,6 +382,71 @@ export const getCustomerRemainderLogs = async (req, res) => {
         count,
       }),
     );
+  } catch (error) {
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Get customer remainder logs
+export const getCustomerRemainderLogs = async (req, res) => {
+  const page = parseInt(req.query.page) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+  const id = req.query.id;
+
+  const skip = page * limit;
+
+  try {
+    const data = await LogsModel.find({ logsCustomer: new ObjectId(id) })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const count = await LogsModel.countDocuments({
+      logsCustomer: new ObjectId(id),
+    });
+
+    return res.status(httpStatus.OK).json(
+      ApiResponse.response(customer_success_code, success_message, {
+        data,
+        count,
+      }),
+    );
+  } catch (error) {
+    return res
+      .status(httpStatus.INTERNAL_SERVER_ERROR)
+      .json(ApiResponse.error(bad_request_code, error.message));
+  }
+};
+
+// Send remainder to customer - manual
+export const sendCustomerServiceRemainder = async (req, res) => {
+  const id = req.query.id;
+
+  if (!id) {
+    return res
+      .status(httpStatus.BAD_REQUEST)
+      .json(ApiResponse.error(error_code, customer_id_required));
+  }
+
+  try {
+    const customer = await Customer.findById(new ObjectId(id));
+
+    if (!customer) {
+      return res
+        .status(httpStatus.BAD_REQUEST)
+        .json(ApiResponse.error(error_code, customer_not_found));
+    }
+
+    await LogsModel.create({
+      logsCustomer: new ObjectId(customer._id),
+      logsType: "Remainder",
+    });
+
+    return res
+      .status(httpStatus.OK)
+      .json(ApiResponse.response(customer_success_code, success_message));
   } catch (error) {
     return res
       .status(httpStatus.INTERNAL_SERVER_ERROR)
