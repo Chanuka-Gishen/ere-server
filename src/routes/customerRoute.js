@@ -3,8 +3,10 @@ import {
   getAllCustomers,
   getCustomer,
   getCustomerRemainderLogs,
+  getCustomersRemainderLogs,
   GetUpcomingMaintainences,
   registerCustomer,
+  sendCustomerServiceRemainder,
   updateCustomer,
 } from "../controllers/customerController.js";
 import { verifyToken } from "../middleware/auth.js";
@@ -23,7 +25,7 @@ customerRoutes.get("/", [verifyToken, checkAdmin], getAllCustomers);
 customerRoutes.get(
   "/customer-details/:customerId",
   [verifyToken, checkAdmin],
-  getCustomer
+  getCustomer,
 );
 customerRoutes.put("/", [verifyToken, checkAdmin], updateCustomer);
 customerRoutes.post("/unit", [verifyToken, checkAdmin], AddCustomerUnit);
@@ -31,10 +33,28 @@ customerRoutes.put("/unit", [verifyToken, checkAdmin], updateCustomerUnit);
 customerRoutes.put(
   "/unit-details-update",
   [verifyToken],
-  updateUnitSerialNumber
+  updateUnitSerialNumber,
 );
 customerRoutes.get("/unit/:id", [verifyToken], getCustomerUnits);
-customerRoutes.get("/recent-maintainence", [verifyToken, checkAdmin], GetUpcomingMaintainences)
-customerRoutes.get("/recent-logs", [verifyToken, checkAdmin], getCustomerRemainderLogs)
+customerRoutes.get(
+  "/recent-maintainence",
+  [verifyToken, checkAdmin],
+  GetUpcomingMaintainences,
+);
+customerRoutes.get(
+  "/recent-logs",
+  [verifyToken, checkAdmin],
+  getCustomersRemainderLogs,
+);
+customerRoutes.get(
+  "/logs",
+  [verifyToken, checkAdmin],
+  getCustomerRemainderLogs,
+);
+customerRoutes.post(
+  "/create-log",
+  [verifyToken, checkAdmin],
+  sendCustomerServiceRemainder,
+);
 
 export default customerRoutes;

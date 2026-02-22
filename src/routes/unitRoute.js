@@ -3,6 +3,7 @@ import {
   deleteUnit,
   getAllUnits,
   getCustomerUnitDetailsFromQrCode,
+  getCustomerUnitsPublic,
   getDueUnitsExcelDonwloadController,
   getUnitDetails,
   getUnitSavedBrandsAndModelsController,
@@ -26,17 +27,18 @@ unitRoutes.get("/calendar", [verifyToken, checkAdmin], getUnitsForCalender);
 unitRoutes.get(
   "/calender-selected/:selectedDate",
   [verifyToken, checkAdmin],
-  getUnitsForCalenderDetails
+  getUnitsForCalenderDetails,
 );
 unitRoutes.get(
   "/select-model",
   [verifyToken],
-  getUnitSavedBrandsAndModelsController
+  getUnitSavedBrandsAndModelsController,
 );
 unitRoutes.get(
   "/download-due-units",
   [verifyToken, checkAdmin],
-  getDueUnitsExcelDonwloadController
+  getDueUnitsExcelDonwloadController,
 );
+unitRoutes.get("/public", getCustomerUnitsPublic);
 
 export default unitRoutes;

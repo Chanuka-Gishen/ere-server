@@ -22,6 +22,7 @@ export const customer_unit_updated = "Unit updated";
 export const customer_unit_not_found = "Unit not found";
 export const customer_unit_cannot_delete = "Unit cannot delete";
 export const customer_unit_deleted = "Unit deleted";
+export const customer_id_required = "Customer ID required";
 
 export const workOrder_not_found = "Work Order not found";
 export const workOrder_assignees_required = "Assigned employees required";
